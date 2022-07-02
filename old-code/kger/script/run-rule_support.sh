@@ -1,0 +1,2 @@
+python rule_support.py -k ../data/kg/yago2core.10kseedsSample.compressed.notypes.tsv -r ../data/rule/amie-rules_yago2-sample.txt -o ../output/amie-rules_yago2-sample_POSITIVE-EXAMPLES.tsv
+#python rule_support.py -k ../data/kg/yago2core.10kseedsSample.compressed.notypes.tsv -r ../data/rule/amie-rules_yago2-sample.txt -o ../output/amie-rules_yago2-sample_NEGATIVE-EXAMPLES.tsv -n
