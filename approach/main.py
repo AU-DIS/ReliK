@@ -3,13 +3,13 @@ import datahandler as dh
 import classifier as cla
 import settings as set
 
+import numpy as np
 import math
 import torch
 
 from sklearn.model_selection import train_test_split
 from pykeen.triples import TriplesFactory
 from numpy import linalg as LA
-import numpy as np
 
 def sigmoid(x, max_score, min_score):
     x_norm = 12 * (x - min_score) / (max_score - min_score) - 6
@@ -72,6 +72,8 @@ def reliability(all_triples, emb_train_triples, model, entity2embedding, relatio
                                 sum += 1-score
                             else:
                                 sum += score
+                            if checkScore:
+                                checkTransEScore(score, h,r,t, emb_train_triples, entity2embedding, relation2embedding)
         reliability_score.append(sum)
     return reliability_score
 
