@@ -2,6 +2,11 @@ frameworks
 .DS_Store
 data
 output
+scoreData
+timeData
+subgraphs
+test.py
+trainedEmbeddings
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

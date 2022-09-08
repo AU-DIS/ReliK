@@ -1,0 +1,170 @@
+import settings as sett
+import torch
+
+import numpy as np
+import math
+from numpy import linalg as LA
+from scipy.special import expit
+
+def checkTransEScore(score, h,r,t, emb_train_triples, entity2embedding, relation2embedding):
+    head_vec = np.array(entity2embedding[emb_train_triples.entity_id_to_label[h]])
+    relation_vec = np.array(relation2embedding[emb_train_triples.relation_id_to_label[r]])
+    tail_vec = np.array(entity2embedding[emb_train_triples.entity_id_to_label[t]])
+    norm = -LA.norm(head_vec + relation_vec - tail_vec, ord=1)
+    decision = math.isclose(norm, score, abs_tol=10**-sett.SIGFIGS)
+    assert decision, f"score is not close (sigfigs {sett.SIGFIGS}) to value "
+
+def reliability(all_triples, emb_train_triples, model, entity2embedding, relation2embedding, subgraphs, checkScore=False):
+    '''
+    Getting the reliability sum as currently defined
+    '''
+    
+    reliability_score = []
+    for subgraph in subgraphs:
+        
+        max_score = 0
+        first = True
+        min_score = 0
+        for h in range(emb_train_triples.num_entities):
+            if emb_train_triples.entity_id_to_label[h] in subgraph:
+                for t in range(emb_train_triples.num_entities):
+                    if emb_train_triples.entity_id_to_label[t] in subgraph:
+                        for r in range(emb_train_triples.num_relations):
+                            ten = torch.tensor([[h,r,t]])
+                            score = model.score_hrt(ten)
+                            score = score.detach().numpy()[0][0]
+                            if first:
+                                first = False
+                                min_score = score
+                                max_score = score
+                            if min_score > score:
+                                min_score = score
+                            if max_score < score:
+                                max_score = score
+                            if checkScore:
+                                checkTransEScore(score, h,r,t, emb_train_triples, entity2embedding, relation2embedding)
+                            
+        # Getting the reliability sum as currently defined
+        # But with already using sigmoid function to make values closer to each other
+        sum = 0
+        for h in range(emb_train_triples.num_entities):
+            if emb_train_triples.entity_id_to_label[h] in subgraph:
+                for t in range(emb_train_triples.num_entities):
+                    if emb_train_triples.entity_id_to_label[t] in subgraph:
+                        for r in range(emb_train_triples.num_relations):
+                            ten = torch.tensor([[h,r,t]])
+                            score = model.score_hrt(ten)
+                            score = score.detach().numpy()[0][0]
+                            if checkScore:
+                                checkTransEScore(score, h,r,t, emb_train_triples, entity2embedding, relation2embedding)
+                            score = score / min_score
+                            score = expit(score)
+                            if ((h,r,t) in all_triples):
+                                sum += 1-score
+                            else:
+                                sum += score
+        reliability_score.append(sum)
+        
+    return reliability_score
+
+def reliabilityNonSig(all_triples, emb_train_triples, model, entity2embedding, relation2embedding, subgraphs, checkScore=False):
+    '''
+    Getting the reliability sum without using sigmoid on the score function, for labels
+    '''
+    
+    reliability_score = []
+    for subgraph in subgraphs:                            
+        sum = 0
+        for h in range(emb_train_triples.num_entities):
+            if emb_train_triples.entity_id_to_label[h] in subgraph:
+                for t in range(emb_train_triples.num_entities):
+                    if emb_train_triples.entity_id_to_label[t] in subgraph:
+                        for r in range(emb_train_triples.num_relations):
+                            ten = torch.tensor([[h,r,t]])
+                            score = model.score_hrt(ten)
+                            score = score.detach().numpy()[0][0]
+                            if checkScore:
+                                checkTransEScore(score, h,r,t, emb_train_triples, entity2embedding, relation2embedding)
+                            if ((h,r,t) in all_triples):
+                                sum += -score
+                            else:
+                                sum += score
+        reliability_score.append(sum)
+        
+    return reliability_score
+
+def reliabilityLabelNonSig(all_triples, emb_train_triples, model, entity2embedding, relation2embedding, subgraphs, checkScore=False):
+    reliability_score = []
+    for subgraph in subgraphs:
+        reliability_score_label = dict()                            
+        for r in range(emb_train_triples.num_relations):
+            sum = 0
+            for h in range(emb_train_triples.num_entities):
+                if emb_train_triples.entity_id_to_label[h] in subgraph:
+                    for t in range(emb_train_triples.num_entities):
+                        if emb_train_triples.entity_id_to_label[t] in subgraph:
+                            
+                                ten = torch.tensor([[h,r,t]])
+                                score = model.score_hrt(ten)
+                                score = score.detach().numpy()[0][0]
+                                if checkScore:
+                                    checkTransEScore(score, h,r,t, emb_train_triples, entity2embedding, relation2embedding)
+                                if ((h,r,t) in all_triples):
+                                    sum += -score
+                                else:
+                                    sum += score
+            reliability_score_label[emb_train_triples.relation_id_to_label[r]] = sum
+        reliability_score.append(reliability_score_label)
+        
+    return reliability_score
+
+def reliabilityLabel(all_triples, emb_train_triples, model, entity2embedding, relation2embedding, subgraphs, checkScore=False):
+    '''
+    Getting the reliability sum as currently defined for labels
+    '''
+    reliability_score = []
+    for subgraph in subgraphs:
+        reliability_score_label = dict()
+        for r in range(emb_train_triples.num_relations):
+            max_score = 0
+            first = True
+            min_score = 0
+            for h in range(emb_train_triples.num_entities):
+                if emb_train_triples.entity_id_to_label[h] in subgraph:
+                    for t in range(emb_train_triples.num_entities):
+                        if emb_train_triples.entity_id_to_label[t] in subgraph:
+                        
+                            ten = torch.tensor([[h,r,t]])
+                            score = model.score_hrt(ten)
+                            score = score.detach().numpy()[0][0]
+                            if first:
+                                first = False
+                                min_score = score
+                                max_score = score
+                            if min_score > score:
+                                min_score = score
+                            if max_score < score:
+                                max_score = score
+                            if checkScore:
+                                checkTransEScore(score, h,r,t, emb_train_triples, entity2embedding, relation2embedding)
+        for r in range(emb_train_triples.num_relations):
+            sum = 0
+            for h in range(emb_train_triples.num_entities):
+                if emb_train_triples.entity_id_to_label[h] in subgraph:
+                    for t in range(emb_train_triples.num_entities):
+                        if emb_train_triples.entity_id_to_label[t] in subgraph:
+                            ten = torch.tensor([[h,r,t]])
+                            score = model.score_hrt(ten)
+                            score = score.detach().numpy()[0][0]
+                            if checkScore:
+                                checkTransEScore(score, h,r,t, emb_train_triples, entity2embedding, relation2embedding)
+                            score = score / min_score
+                            score = expit(score)
+                            if ((h,r,t) in all_triples):
+                                sum += 1-score
+                            else:
+                                sum += score
+            reliability_score_label[emb_train_triples.relation_id_to_label[r]] = sum
+        reliability_score.append(reliability_score_label)
+        
+    return reliability_score
