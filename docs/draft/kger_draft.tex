@@ -69,12 +69,14 @@
 
 \section{Reliability}
 
-Let as assume to build a complete, weighted, entity-relation-entity graph, containing all possible relations and with arc weights equivalent to the scoring function of a considered embedding model $f_r(h,t)$.
+Let us assume to build a complete, weighted, entity-relation-entity graph, containing all possible relations and with arc weights equivalent to the scoring function of a considered embedding model $f_r(h,t)$, for any triple $(h,r,t)$.
+Let us also assume that $f_r(h,t) \in [0,1]$, with $f_r(h,t)$ closer to 1 meaning that the embedding model is more confident that the triple $(h,r,t)$ actually exists, and vice versa. 
 
-We define \textbf{reliability} $R(\mathcal{K})$ as follows: 
-$$R(\mathcal{K}) = \sum_{(h,r,t) \in \mathcal{K}} (1 - f_r(h,t)) +  \sum_{(h,r,t) \not \in \mathcal{K}} f_r(h,t) $$
-
-Where $\mathcal{K}$ is a knowledge graph (provided as a set of triplets). 
+Given a knowledge graph $\mathcal{K}$ (provided as a set of triples), and denoting by $k^+$ and $k^-$ the number of triples that do exist and do not exist in $\mathcal{K}$ , respectively,
+we define \textbf{reliability} $R(\mathcal{K})$ as follows: 
+$$
+R(\mathcal{K}) = \frac{1}{2} \left ( \frac{1}{k^+} \sum_{(h,r,t) \in \mathcal{K}} f_r(h,t) + \frac{1}{k^-} \sum_{(h,r,t) \not \in \mathcal{K}} (1 - f_r(h,t)) \right ).
+$$
 
 In this experiment, we are going to use a link-prediction strategy to \emph{compare} the \textbf{reliability} of a subgraph with the \textbf{accuracy} of a classifier on the subgraph triplets. 
 
