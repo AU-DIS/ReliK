@@ -63,8 +63,25 @@ def makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedd
     end_time_clf_training = timeit.default_timer()
 
     start_time_LP_score = timeit.default_timer()
-    LP_test_score = cla.testClassifierSubgraphs(clf, X_test, y_test, entity2embedding, relation2embedding, subgraphs)
-    LP_test_score_label = cla.testClassifierSubgraphsOnLabels(clf, X_test, y_test, entity2embedding, relation2embedding, subgraphs, emb_train_triples)
+    if sett.DO_NOT_LABEL_BASED:
+        LP_test_score = cla.testClassifierSubgraphs(clf, X_test, y_test, entity2embedding, relation2embedding, subgraphs)
+    if sett.DO_LABEL_BASED:
+        LP_test_score_label = cla.testClassifierSubgraphsOnLabels(clf, X_test, y_test, entity2embedding, relation2embedding, subgraphs, emb_train_triples)
+
+        c = open(f'{path}/{sett.NAME_OF_RUN}_LP_label.csv', "w")
+        writer = csv.writer(c)
+        data = ['subgraph']
+        for r in range(emb_train_triples.num_relations): 
+            data.append(emb_train_triples.relation_id_to_label[r])
+        writer.writerow(data)
+        count = 0
+        for dic in LP_test_score_label:
+            data = [count]
+            for r in range(emb_train_triples.num_relations): 
+                data.append(dic[emb_train_triples.relation_id_to_label[r]])
+            writer.writerow(data)
+            count += 1
+        c.close()
     end_time_LP_score = timeit.default_timer()
 
     return LP_test_score, LP_test_score_label, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score
@@ -93,6 +110,13 @@ if __name__ == "__main__":
         print(f'created NegTriples')
     end_time_create_neg_samples = timeit.default_timer()
     
+    path = f'approach/scoreData/{sett.NAME_OF_RUN}'
+
+    # Check whether the specified path exists or not
+    isExist = os.path.exists(path)
+
+    if not isExist:
+        os.makedirs(path)
 
     if sett.DOSCORE:
         # Create or get subgraphs
@@ -116,10 +140,43 @@ if __name__ == "__main__":
         
         # Get reliability value for KG
         start_time_reliability = timeit.default_timer()
-        reliability_score = rel.reliability(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
-        reliability_score2 = rel.reliabilityNonSig(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
-        reliability_score_label = rel.reliabilityLabel(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
-        reliability_score_label2 = rel.reliabilityLabelNonSig(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+        if sett.DO_NOT_LABEL_BASED:
+            reliability_score = rel.reliability(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+            reliability_score2 = rel.reliabilityNonSig(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+        if sett.DO_LABEL_BASED:
+            reliability_score_label = rel.reliabilityLabel(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+            reliability_score_label2 = rel.reliabilityLabelNonSig(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+
+            # Label specific files and data scores for evaluation
+            c = open(f'{path}/{sett.NAME_OF_RUN}_rel_label.csv', "w")
+            writer = csv.writer(c)
+            data = ['subgraph']
+            for r in range(emb_train_triples.num_relations): 
+                data.append(emb_train_triples.relation_id_to_label[r])
+            writer.writerow(data)
+            count = 0
+            for dic in reliability_score_label:
+                data = [count]
+                for r in range(emb_train_triples.num_relations): 
+                    data.append(dic[emb_train_triples.relation_id_to_label[r]])
+                writer.writerow(data)
+                count += 1
+            c.close()
+
+            c = open(f'{path}/{sett.NAME_OF_RUN}_rel_noSig_label.csv', "w")
+            writer = csv.writer(c)
+            data = ['subgraph']
+            for r in range(emb_train_triples.num_relations): 
+                data.append(emb_train_triples.relation_id_to_label[r])
+            writer.writerow(data)
+            count = 0
+            for dic in reliability_score_label2:
+                data = [count]
+                for r in range(emb_train_triples.num_relations): 
+                    data.append(dic[emb_train_triples.relation_id_to_label[r]])
+                writer.writerow(data)
+                count += 1
+            c.close()
         end_time_reliability = timeit.default_timer()
 
         end_time_complete = timeit.default_timer()
@@ -141,14 +198,6 @@ if __name__ == "__main__":
         print(f'Time precentage from measured steps {format(time_percentage, ".4f")}')
         print()
 
-        path = f'approach/scoreData/{sett.NAME_OF_RUN}'
-
-        # Check whether the specified path exists or not
-        isExist = os.path.exists(path)
-
-        if not isExist:
-            os.makedirs(path)
-
         max_rel_score = min(reliability_score)
         c = open(f'{path}/{sett.NAME_OF_RUN}.csv', "w")
         writer = csv.writer(c)
@@ -160,7 +209,7 @@ if __name__ == "__main__":
         c.close()
         
         newFile = True
-        if os.path.exists('approach/timeData.csv'):
+        if os.path.exists('approach/scoreData/timeData.csv'):
             newFile = False
         
         c = open(f'approach/timeData.csv', "a+")
@@ -170,52 +219,6 @@ if __name__ == "__main__":
             writer.writerow(data)
         data = [sett.NAME_OF_RUN, sett.DATASETNAME, sett.AMOUNT_OF_SUBGRAPHS, sett.SIZE_OF_SUBGRAPHS, time_complete, time_emb_training, time_clf_training, time_LP_score, time_reliability, time_measured, time_percentage]
         writer.writerow(data)
-        c.close()
-
-        # Label specific files and data scores for evaluation
-        c = open(f'{path}/{sett.NAME_OF_RUN}_rel_label.csv', "w")
-        writer = csv.writer(c)
-        data = ['subgraph']
-        for r in range(emb_train_triples.num_relations): 
-            data.append(emb_train_triples.relation_id_to_label[r])
-        writer.writerow(data)
-        count = 0
-        for dic in reliability_score_label:
-            data = [count]
-            for r in range(emb_train_triples.num_relations): 
-                data.append(dic[emb_train_triples.relation_id_to_label[r]])
-            writer.writerow(data)
-            count += 1
-        c.close()
-
-        c = open(f'{path}/{sett.NAME_OF_RUN}_rel_noSig_label.csv', "w")
-        writer = csv.writer(c)
-        data = ['subgraph']
-        for r in range(emb_train_triples.num_relations): 
-            data.append(emb_train_triples.relation_id_to_label[r])
-        writer.writerow(data)
-        count = 0
-        for dic in reliability_score_label2:
-            data = [count]
-            for r in range(emb_train_triples.num_relations): 
-                data.append(dic[emb_train_triples.relation_id_to_label[r]])
-            writer.writerow(data)
-            count += 1
-        c.close()
-
-        c = open(f'{path}/{sett.NAME_OF_RUN}_LP_label.csv', "w")
-        writer = csv.writer(c)
-        data = ['subgraph']
-        for r in range(emb_train_triples.num_relations): 
-            data.append(emb_train_triples.relation_id_to_label[r])
-        writer.writerow(data)
-        count = 0
-        for dic in LP_test_score_label:
-            data = [count]
-            for r in range(emb_train_triples.num_relations): 
-                data.append(dic[emb_train_triples.relation_id_to_label[r]])
-            writer.writerow(data)
-            count += 1
         c.close()
 
     if sett.DODIS:
@@ -229,14 +232,6 @@ if __name__ == "__main__":
         emb_dis_score_pos = emb.getScoreForTripleList(X_pos, emb_train_triples, emb_model)
         emb_dis_score_neg = emb.getScoreForTripleList(X_neg, emb_train_triples, emb_model)
         emb_dis_score_some_neg = emb.getScoreForTripleList(X_some_neg, emb_train_triples, emb_model)
-
-        path = f'approach/scoreData/{sett.NAME_OF_RUN}'
-
-        # Check whether the specified path exists or not
-        isExist = os.path.exists(path)
-
-        if not isExist:
-            os.makedirs(path)
 
         c = open(f'{path}/{sett.NAME_OF_RUN}_emb_dis.csv', "w")
         writer = csv.writer(c)

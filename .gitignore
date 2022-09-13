@@ -3,10 +3,10 @@ frameworks
 data
 output
 scoreData
-timeData
 subgraphs
 test.py
 trainedEmbeddings
+settings.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
