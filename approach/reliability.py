@@ -14,6 +14,91 @@ def checkTransEScore(score, h,r,t, emb_train_triples, entity2embedding, relation
     decision = math.isclose(norm, score, abs_tol=10**-sett.SIGFIGS)
     assert decision, f"score is not close (sigfigs {sett.SIGFIGS}) to value "
 
+def reliability_local_normalization(all_triples, emb_train_triples, model, entity2embedding, relation2embedding, subgraphs):
+    '''
+    Getting the reliability sum as currently defined
+    '''
+    reliability_score = []
+    for subgraph in subgraphs:
+        
+        max_score = 0
+        counter_neg = 0
+        counter_pos = 0
+        sum_neg = 0
+        sum_pos = 0
+        for h in range(emb_train_triples.num_entities):
+            if emb_train_triples.entity_id_to_label[h] in subgraph:
+                for t in range(emb_train_triples.num_entities):
+                    if emb_train_triples.entity_id_to_label[t] in subgraph:
+                        for r in range(emb_train_triples.num_relations):
+                            ten = torch.tensor([[h,r,t]])
+                            score = model.score_hrt(ten)
+                            score = score.detach().numpy()[0][0]
+                            score = score * (-1)
+                            if score > max_score:
+                                max_score = score
+
+                            if ((h,r,t) in all_triples):
+                                sum_pos += score
+                                counter_pos += 1
+                            else:
+                                sum_neg += score
+                                counter_neg += 1
+
+        sum_pos = sum_pos/(max_score * counter_pos)
+        sum_neg = 1-(sum_neg/(max_score * counter_neg))
+
+        reliability_score.append((sum_pos + sum_neg)/2)
+        
+    return reliability_score
+
+def reliability_global_normalization(all_triples, emb_train_triples, model, entity2embedding, relation2embedding, subgraphs):
+    '''
+    Getting the reliability sum as currently defined
+    '''
+    reliability_score = []
+    neg_sum_list = []
+    pos_sum_list = []
+    neg_counter_list = []
+    pos_counter_list = []
+
+    max_score = 0
+
+    for subgraph in subgraphs:
+        
+        counter_neg = 0
+        counter_pos = 0
+        sum_neg = 0
+        sum_pos = 0
+        for h in range(emb_train_triples.num_entities):
+            if emb_train_triples.entity_id_to_label[h] in subgraph:
+                for t in range(emb_train_triples.num_entities):
+                    if emb_train_triples.entity_id_to_label[t] in subgraph:
+                        for r in range(emb_train_triples.num_relations):
+                            ten = torch.tensor([[h,r,t]])
+                            score = model.score_hrt(ten)
+                            score = score.detach().numpy()[0][0]
+                            score = score * (-1)
+                            if score > max_score:
+                                max_score = score
+
+                            if ((h,r,t) in all_triples):
+                                sum_pos += score
+                                counter_pos += 1
+                            else:
+                                sum_neg += score
+                                counter_neg += 1
+        neg_sum_list.append(sum_neg)
+        pos_sum_list.append(sum_pos)
+        neg_counter_list.append(counter_neg)
+        pos_counter_list.append(counter_pos)
+    
+    for i in range(len(subgraphs)):
+        sum_pos_final = pos_sum_list[i]/(max_score * pos_counter_list[i])
+        sum_neg_final = 1-(neg_sum_list[i]/(max_score * neg_counter_list[i]))
+        reliability_score.append((sum_pos_final + sum_neg_final)/2)
+    return reliability_score
+
 def reliability(all_triples, emb_train_triples, model, entity2embedding, relation2embedding, subgraphs, checkScore=False):
     '''
     Getting the reliability sum as currently defined

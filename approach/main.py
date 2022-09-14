@@ -8,6 +8,7 @@ import torch
 import csv
 import timeit
 import os
+import random
 
 from sklearn.model_selection import train_test_split
 from pykeen.triples import TriplesFactory
@@ -32,7 +33,6 @@ def retrieveOrTrainEmbedding():
     # Train and create embedding model
     
     isFile = os.path.isfile(f"approach/trainedEmbeddings/{sett.SAVENAME}/trained_model.pkl")
-    #print(isFile)
     if sett.LOAD_MODEL and isFile:
         emb_model = emb.loadModel(savename=sett.SAVENAME)
     else:
@@ -61,7 +61,7 @@ def makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedd
     X_train, X_test, y_train, y_test = cla.prepareTrainTestData(LP_triples_pos, LP_triples_neg, emb_train_triples)
     clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding)
     end_time_clf_training = timeit.default_timer()
-
+    LP_test_score = -1
     start_time_LP_score = timeit.default_timer()
     if sett.DO_NOT_LABEL_BASED:
         LP_test_score = cla.testClassifierSubgraphs(clf, X_test, y_test, entity2embedding, relation2embedding, subgraphs)
@@ -84,7 +84,7 @@ def makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedd
         c.close()
     end_time_LP_score = timeit.default_timer()
 
-    return LP_test_score, LP_test_score_label, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score
+    return LP_test_score, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score
 
 
 if __name__ == "__main__":
@@ -121,10 +121,17 @@ if __name__ == "__main__":
     if sett.DOSCORE:
         # Create or get subgraphs
         start_time_create_subgraphs = timeit.default_timer()
-        isFile = os.path.isfile(f"approach/trainedEmbeddings/{sett.SAVENAME}/subgraphs.csv")
+        isFile = os.path.isfile(f"approach/trainedEmbeddings/{sett.SAVENAME}/subgraphs_{sett.SIZE_OF_SUBGRAPHS}.csv")
         if sett.LOAD_SUBGRAPHS and isFile:
             subgraphs = dh.loadSubGraphs(f"approach/trainedEmbeddings/{sett.SAVENAME}")
             print(f'loaded Subgraphs')
+            if len(subgraphs) < sett.AMOUNT_OF_SUBGRAPHS:
+                subgraphs_new = dh.createSubGraphs(all_triples, entity_to_id_map, relation_to_id_map, size_of_graphs=sett.SIZE_OF_SUBGRAPHS, number_of_graphs=(sett.AMOUNT_OF_SUBGRAPHS-len(subgraphs)), restart=sett.RESET_PROB)
+                dh.storeSubGraphs(f"approach/trainedEmbeddings/{sett.SAVENAME}",subgraphs_new)
+                subgraphs = subgraphs + subgraphs_new
+                print(f'created Subgraphs')
+            if len(subgraphs) > sett.AMOUNT_OF_SUBGRAPHS:
+                subgraphs = random.sample(subgraphs, sett.AMOUNT_OF_SUBGRAPHS)
         else:
             subgraphs = dh.createSubGraphs(all_triples, entity_to_id_map, relation_to_id_map, size_of_graphs=sett.SIZE_OF_SUBGRAPHS, number_of_graphs=sett.AMOUNT_OF_SUBGRAPHS, restart=sett.RESET_PROB)
             dh.storeSubGraphs(f"approach/trainedEmbeddings/{sett.SAVENAME}",subgraphs)
@@ -135,14 +142,14 @@ if __name__ == "__main__":
         # Split LP data for training and testing
         # train classifier and test it
     
-        LP_test_score, LP_test_score_label, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples)
+        LP_test_score, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples)
         print(f'finished LP Score')
         
         # Get reliability value for KG
         start_time_reliability = timeit.default_timer()
         if sett.DO_NOT_LABEL_BASED:
-            reliability_score = rel.reliability(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
-            reliability_score2 = rel.reliabilityNonSig(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+            local_reliability_score = rel.reliability_local_normalization(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+            global_reliability_score = rel.reliability_global_normalization(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
         if sett.DO_LABEL_BASED:
             reliability_score_label = rel.reliabilityLabel(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
             reliability_score_label2 = rel.reliabilityLabelNonSig(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
@@ -198,13 +205,12 @@ if __name__ == "__main__":
         print(f'Time precentage from measured steps {format(time_percentage, ".4f")}')
         print()
 
-        max_rel_score = min(reliability_score)
         c = open(f'{path}/{sett.NAME_OF_RUN}.csv', "w")
         writer = csv.writer(c)
-        data = ['subgraph', 'LP_test_score', 'reliability_score', 'reliability_score2']
+        data = ['subgraph', 'LP_test_score', 'local_reliability_score', 'global_reliability_score']
         writer.writerow(data)
         for i in range(len(LP_test_score)):
-            data = [i, LP_test_score[i], reliability_score[i], reliability_score2[i]]
+            data = [i, LP_test_score[i], local_reliability_score[i], global_reliability_score[i]]
             writer.writerow(data)
         c.close()
         
@@ -212,7 +218,7 @@ if __name__ == "__main__":
         if os.path.exists('approach/scoreData/timeData.csv'):
             newFile = False
         
-        c = open(f'approach/timeData.csv', "a+")
+        c = open(f'approach/scoreData/timeData.csv', "a+")
         writer = csv.writer(c)
         if newFile:
             data = ['experiment run','dataset', 'number of subgraphs', 'size of subgraphs', 'complete time', 'embedding training time', 'classifier training time', 'LP score time', 'reliability time', 'time from measured', 'percentage of measured']
@@ -238,9 +244,6 @@ if __name__ == "__main__":
         data = ['subgraph','pos','some_neg','neg']
         writer.writerow(data)
         count = 0
-        print(len(emb_dis_score_pos))
-        print(len(emb_dis_score_neg))
-        print(len(emb_dis_score_some_neg))
         for ele in emb_dis_score_pos:
             data = [count]
             data.append(emb_dis_score_pos[count])

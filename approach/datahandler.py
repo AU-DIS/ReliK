@@ -114,12 +114,12 @@ def createSubGraphs(all_triples, entity_to_id, relation_to_id, number_of_graphs=
     return subgraphs
 
 def storeSubGraphs(path, subgraphs):
-    with open(f"{path}/subgraphs.csv", "a+") as f:
+    with open(f"{path}/subgraphs_{sett.SIZE_OF_SUBGRAPHS}.csv", "a+") as f:
         wr = csv.writer(f)
         wr.writerows(subgraphs)
 
 def loadSubGraphs(path):
-    with open(f"{path}/subgraphs.csv", "r") as f:
+    with open(f"{path}/subgraphs_{sett.SIZE_OF_SUBGRAPHS}.csv", "r") as f:
         rows = csv.reader(f, delimiter=',')
         subgraphs = []
         for row in rows:
