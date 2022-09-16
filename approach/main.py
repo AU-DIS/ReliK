@@ -49,11 +49,11 @@ def retrieveOrTrainEmbedding():
     return emb_model, all_triples, all_triples_set, LP_triples_pos, emb_train_triples, entity2embedding, relation2embedding, entity_to_id_map, relation_to_id_map
 
 def makeNegTriples(all_triples_set, all_triples, emb_train_triples):
-    neg_triples = dh.createNegTripleHT(all_triples_set, all_triples.tolist(), emb_train_triples)
+    neg_triples, related_nodes = dh.createNegTripleHT(all_triples_set, all_triples.tolist(), emb_train_triples)
     some_neg_triples = dh.createNegTripleRelation(all_triples_set, all_triples.tolist(), emb_train_triples)
     throwaway, LP_triples_neg = train_test_split(neg_triples, test_size=sett.LP_EMB_SPLIT)
 
-    return neg_triples, some_neg_triples, LP_triples_neg
+    return neg_triples, some_neg_triples, LP_triples_neg, related_nodes
 
 def makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples):
 
@@ -64,6 +64,8 @@ def makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedd
     LP_test_score = -1
     start_time_LP_score = timeit.default_timer()
     if sett.DO_NOT_LABEL_BASED:
+        LP_test_score = cla.testClassifierSubgraphs(clf, X_test, y_test, entity2embedding, relation2embedding, subgraphs)
+    if sett.DO_THREE_BASED:
         LP_test_score = cla.testClassifierSubgraphs(clf, X_test, y_test, entity2embedding, relation2embedding, subgraphs)
     if sett.DO_LABEL_BASED:
         LP_test_score_label = cla.testClassifierSubgraphsOnLabels(clf, X_test, y_test, entity2embedding, relation2embedding, subgraphs, emb_train_triples)
@@ -101,12 +103,14 @@ if __name__ == "__main__":
     if sett.LOAD_TRIPLES and isFile:
         neg_triples = dh.loadTriples(f"approach/trainedEmbeddings/{sett.SAVENAME}/neg_triples")
         some_neg_triples = dh.loadTriples(f"approach/trainedEmbeddings/{sett.SAVENAME}/some_neg_triples")
+        related_nodes = dh.loadRelated(f"approach/trainedEmbeddings/{sett.SAVENAME}/related")
         throwaway, LP_triples_neg = train_test_split(neg_triples, test_size=sett.LP_EMB_SPLIT)
         print(f'loaded NegTriples')
     else:
-        neg_triples, some_neg_triples, LP_triples_neg = makeNegTriples(all_triples_set, all_triples, emb_train_triples)
+        neg_triples, some_neg_triples, LP_triples_neg, related_nodes = makeNegTriples(all_triples_set, all_triples, emb_train_triples)
         dh.storeTriples(f"approach/trainedEmbeddings/{sett.SAVENAME}/neg_triples", neg_triples)
         dh.storeTriples(f"approach/trainedEmbeddings/{sett.SAVENAME}/some_neg_triples", some_neg_triples)
+        dh.storeRelated(f"approach/trainedEmbeddings/{sett.SAVENAME}/related", related_nodes)
         print(f'created NegTriples')
     end_time_create_neg_samples = timeit.default_timer()
     
@@ -150,6 +154,9 @@ if __name__ == "__main__":
         if sett.DO_NOT_LABEL_BASED:
             local_reliability_score = rel.reliability_local_normalization(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
             global_reliability_score = rel.reliability_global_normalization(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+        if sett.DO_THREE_BASED:
+            local_reliability_score = rel.reliability_local_normalization_three_part(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs, related_nodes)
+            global_reliability_score = local_reliability_score
         if sett.DO_LABEL_BASED:
             reliability_score_label = rel.reliabilityLabel(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
             reliability_score_label2 = rel.reliabilityLabelNonSig(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)

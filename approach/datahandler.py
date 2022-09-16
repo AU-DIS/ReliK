@@ -19,9 +19,11 @@ def createNegTripleHT(kg_triple_set, kg_triple, triples):
     so we get a non existing triple as neg triple
     '''
     kg_neg_triple_list = []
+    related_nodes = set()
     lst_emb = list(range(triples.num_entities))
     bigcount = 0
     for pos_sample in kg_triple:
+        related_nodes.add((pos_sample[0],pos_sample[2]))
         not_created = True
         relation = pos_sample[1]
         count = 0
@@ -43,7 +45,7 @@ def createNegTripleHT(kg_triple_set, kg_triple, triples):
         if bigcount % 10000 == 0:
             print(f'Have created {bigcount} neg samples')
 
-    return kg_neg_triple_list
+    return kg_neg_triple_list, related_nodes
 
 def createNegTripleRelation(kg_triple_set, kg_triple, triples):
     '''
@@ -134,6 +136,12 @@ def storeTriples(path, triples):
         wr = csv.writer(f)
         wr.writerows(triples)
 
+def storeRelated(path, related):
+    related = list(related)
+    with open(f"{path}.csv", "w") as f:
+        wr = csv.writer(f)
+        wr.writerows(related)
+
 def loadTriples(path):
     with open(f"{path}.csv", "r") as f:
         rows = csv.reader(f, delimiter=',')
@@ -142,6 +150,15 @@ def loadTriples(path):
             tp = [int(row[0]),int(row[1]),int(row[2])]
             triples.append(tp)
     return triples
+
+def loadRelated(path):
+    with open(f"{path}.csv", "r") as f:
+        rows = csv.reader(f, delimiter=',')
+        related_nodes = set()
+        for row in rows:
+            tp = (int(row[0]),int(row[1]))
+            related_nodes.add(tp)
+    return related_nodes
 
 
 def convertListToData(sample_triples, triples, pos_sample=True):
