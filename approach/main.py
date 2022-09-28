@@ -19,6 +19,9 @@ def retrieveOrTrainEmbedding():
     
     # Split Data between embedding and LP classifier part
     emb_triples, LP_triples = train_test_split(all_triples, test_size=sett.LP_EMB_SPLIT)
+    if sett.MAKE_TRAINING_SMALLER:
+        emb_triples, throwaway = train_test_split(emb_triples, test_size=sett.SMALLER_RATIO)
+        LP_triples, throwaway = train_test_split(LP_triples, test_size=sett.SMALLER_RATIO)
     LP_triples_pos = LP_triples.tolist()
 
     # Split Data between embedding train and test
