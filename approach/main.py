@@ -155,7 +155,7 @@ if __name__ == "__main__":
         # Get reliability value for KG
         start_time_reliability = timeit.default_timer()
         if sett.DO_NOT_LABEL_BASED:
-            local_reliability_score = rel.reliability_local_normalization(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+            local_reliability_score = rel.reliability_local_normalization_as_Sum(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
             global_reliability_score = rel.reliability_global_normalization(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
         if sett.DO_THREE_BASED:
             local_reliability_score = rel.reliability_local_normalization_three_part(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs, related_nodes)
