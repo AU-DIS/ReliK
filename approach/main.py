@@ -62,7 +62,10 @@ def makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedd
 
     start_time_clf_training = timeit.default_timer()
     X_train, X_test, y_train, y_test = cla.prepareTrainTestData(LP_triples_pos, LP_triples_neg, emb_train_triples)
-    clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding)
+    if sett.DO_NORM1:
+        clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding, pen='l1')
+    else:
+        clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding, pen='l2')
     end_time_clf_training = timeit.default_timer()
     LP_test_score = -1
     start_time_LP_score = timeit.default_timer()
@@ -155,11 +158,14 @@ if __name__ == "__main__":
         # Get reliability value for KG
         start_time_reliability = timeit.default_timer()
         if sett.DO_NOT_LABEL_BASED:
-            local_reliability_score = rel.reliability_local_normalization_as_Sum(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
-            global_reliability_score = rel.reliability_global_normalization(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+            if sett.DO_NORM1:
+                local_reliability_score = rel.reliability_local_normalization_as_Sum(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs, norm=1)
+            else:
+                local_reliability_score = rel.reliability_local_normalization_as_Sum(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs, norm=2)
+            #global_reliability_score = rel.reliability_global_normalization(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
         if sett.DO_THREE_BASED:
             local_reliability_score = rel.reliability_local_normalization_three_part(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs, related_nodes)
-            global_reliability_score = local_reliability_score
+            #global_reliability_score = local_reliability_score
         if sett.DO_LABEL_BASED:
             reliability_score_label = rel.reliabilityLabel(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
             reliability_score_label2 = rel.reliabilityLabelNonSig(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
@@ -217,10 +223,10 @@ if __name__ == "__main__":
 
         c = open(f'{path}/{sett.NAME_OF_RUN}.csv', "w")
         writer = csv.writer(c)
-        data = ['subgraph', 'LP_test_score', 'local_reliability_score', 'global_reliability_score']
+        data = ['subgraph', 'LP_test_score', 'local_reliability_score']
         writer.writerow(data)
         for i in range(len(LP_test_score)):
-            data = [i, LP_test_score[i], local_reliability_score[i], global_reliability_score[i]]
+            data = [i, LP_test_score[i], local_reliability_score[i]]
             writer.writerow(data)
         c.close()
         
@@ -231,9 +237,13 @@ if __name__ == "__main__":
         c = open(f'approach/scoreData/timeData.csv', "a+")
         writer = csv.writer(c)
         if newFile:
-            data = ['experiment run','dataset', 'number of subgraphs', 'size of subgraphs', 'complete time', 'embedding training time', 'classifier training time', 'LP score time', 'reliability time', 'time from measured', 'percentage of measured']
+            data = ['experiment run','dataset', 'number of subgraphs', 'size of subgraphs', 'complete time', 'embedding training time', 'classifier training time', 'LP score time', 'reliability time', 'time from measured', 'percentage of measured', 'norm']
             writer.writerow(data)
-        data = [sett.NAME_OF_RUN, sett.DATASETNAME, sett.AMOUNT_OF_SUBGRAPHS, sett.SIZE_OF_SUBGRAPHS, time_complete, time_emb_training, time_clf_training, time_LP_score, time_reliability, time_measured, time_percentage]
+        if sett.DO_NORM1:
+            norm = "1-Norm"
+        else:
+            norm = "2-Norm"
+        data = [sett.NAME_OF_RUN, sett.DATASETNAME, sett.AMOUNT_OF_SUBGRAPHS, sett.SIZE_OF_SUBGRAPHS, time_complete, time_emb_training, time_clf_training, time_LP_score, time_reliability, time_measured, time_percentage, norm]
         writer.writerow(data)
         c.close()
 

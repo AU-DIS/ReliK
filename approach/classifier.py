@@ -4,14 +4,14 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 
-def trainLPClassifier(X_train, Y_train, entity2embedding, relation2embedding, type='SVC'):
+def trainLPClassifier(X_train, Y_train, entity2embedding, relation2embedding, type='SVC', pen='l2'):
     '''
     Train specific Classifier
     '''
     if type == 'SVC':
         clf = SVC()
     elif type == 'LogisticRegression':
-        clf = LogisticRegression()
+        clf = LogisticRegression(penalty=pen)
     '''
     if type == 'SVC':
         clf = SVC(max_iter=2000)
