@@ -109,15 +109,17 @@ if __name__ == "__main__":
     if sett.LOAD_TRIPLES and isFile:
         neg_triples = dh.loadTriples(f"approach/trainedEmbeddings/{sett.SAVENAME}/neg_triples")
         some_neg_triples = dh.loadTriples(f"approach/trainedEmbeddings/{sett.SAVENAME}/some_neg_triples")
-        related_nodes = dh.loadRelated(f"approach/trainedEmbeddings/{sett.SAVENAME}/related")
         throwaway, LP_triples_neg = train_test_split(neg_triples, test_size=sett.LP_EMB_SPLIT)
-        print(f'loaded NegTriples')
     else:
         neg_triples, some_neg_triples, LP_triples_neg, related_nodes = makeNegTriples(all_triples_set, all_triples, emb_train_triples)
         dh.storeTriples(f"approach/trainedEmbeddings/{sett.SAVENAME}/neg_triples", neg_triples)
         dh.storeTriples(f"approach/trainedEmbeddings/{sett.SAVENAME}/some_neg_triples", some_neg_triples)
+    
+    isFile = os.path.isfile(f"approach/trainedEmbeddings/{sett.SAVENAME}/related.csv")
+    if sett.LOAD_TRIPLES and isFile:
+        related_nodes = dh.loadRelated(f"approach/trainedEmbeddings/{sett.SAVENAME}/related")
+    else:
         dh.storeRelated(f"approach/trainedEmbeddings/{sett.SAVENAME}/related", related_nodes)
-        print(f'created NegTriples')
     end_time_create_neg_samples = timeit.default_timer()
     
     path = f'approach/scoreData/{sett.NAME_OF_RUN}'
