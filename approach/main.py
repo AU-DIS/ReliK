@@ -119,6 +119,7 @@ if __name__ == "__main__":
     if sett.LOAD_TRIPLES and isFile:
         related_nodes = dh.loadRelated(f"approach/trainedEmbeddings/{sett.SAVENAME}/related")
     else:
+        t1, t2, t3, related_nodes = makeNegTriples(all_triples_set, all_triples, emb_train_triples)
         dh.storeRelated(f"approach/trainedEmbeddings/{sett.SAVENAME}/related", related_nodes)
     end_time_create_neg_samples = timeit.default_timer()
     
