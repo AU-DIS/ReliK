@@ -97,6 +97,49 @@ def reliability_local_normalization(all_triples, emb_train_triples, model, entit
         
     return reliability_score
 
+def reliability_DistMult_local_normalization_as_Sum(all_triples, emb_train_triples, model, entity2embedding, relation2embedding, subgraphs):
+    '''
+    Getting the reliability sum as currently defined
+    '''
+    reliability_score = []
+    for subgraph in subgraphs:
+        
+        max_score = 0
+        counter_neg = 0
+        counter_pos = 0
+        sum_neg = 0
+        sum_pos = 0
+
+        for h in range(emb_train_triples.num_entities):
+            if emb_train_triples.entity_id_to_label[h] in subgraph:
+                for t in range(emb_train_triples.num_entities):
+                    if emb_train_triples.entity_id_to_label[t] in subgraph:
+                        for r in range(emb_train_triples.num_relations):
+                            ten = torch.tensor([[h,r,t]])
+                            score = model.score_hrt(ten)
+                            score = score.detach().numpy()[0][0]
+                            if score > max_score:
+                                max_score = score
+
+        for h in range(emb_train_triples.num_entities):
+            if emb_train_triples.entity_id_to_label[h] in subgraph:
+                for t in range(emb_train_triples.num_entities):
+                    if emb_train_triples.entity_id_to_label[t] in subgraph:
+                        for r in range(emb_train_triples.num_relations):
+                            ten = torch.tensor([[h,r,t]])
+                            score = model.score_hrt(ten)
+                            score = score.detach().numpy()[0][0]
+
+                            if ((h,r,t) in all_triples):
+                                sum_pos += (score/max_score)
+                                counter_pos += 1
+                            else:
+                                sum_neg += (score/max_score)
+                                counter_neg += 1
+        reliability_score.append(( (sum_pos/counter_pos) + (1-(sum_neg/counter_neg)) )/2)
+        
+    return reliability_score
+
 def reliability_local_normalization_as_Sum(all_triples, emb_train_triples, model, entity2embedding, relation2embedding, subgraphs, norm):
     '''
     Getting the reliability sum as currently defined
@@ -138,10 +181,6 @@ def reliability_local_normalization_as_Sum(all_triples, emb_train_triples, model
                             else:
                                 sum_neg += 1-(score/max_score)
                                 counter_neg += 1
-        print()
-        print(sum_pos/counter_pos)
-        print(sum_neg/counter_neg)
-        print()
         reliability_score.append(( (sum_pos/counter_pos) + (1-(sum_neg/counter_neg)) )/2)
         
     return reliability_score

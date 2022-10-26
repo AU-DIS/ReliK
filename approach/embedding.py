@@ -45,14 +45,20 @@ def getDataFromPykeen(datasetname='Nations'):
 
     return all_triples_tensor, all_triples_set, entity_to_id_map, relation_to_id_map
 
-def trainEmbedding(training_set, test_set, random_seed=None, saveModel = False, savename="Test"):
+def trainEmbedding(training_set, test_set, random_seed=None, saveModel = False, savename="Test", embedd="TransE"):
     '''
     Train embedding for given triples
     '''
-    if random_seed == None:
-        result = pipeline(training=training_set,testing=test_set,model=TransE,training_loop='LCWA')
-    else:
-        result = pipeline(training=training_set,testing=test_set,model=TransE,random_seed=random_seed,training_loop='LCWA')
+    if embedd == 'TransE':
+        if random_seed == None:
+            result = pipeline(training=training_set,testing=test_set,model=TransE,training_loop='LCWA')
+        else:
+            result = pipeline(training=training_set,testing=test_set,model=TransE,random_seed=random_seed,training_loop='LCWA')
+    elif embedd == 'DistMult':
+        if random_seed == None:
+            result = pipeline(training=training_set,testing=test_set,model=DistMult,training_loop='LCWA')
+        else:
+            result = pipeline(training=training_set,testing=test_set,model=DistMult,random_seed=random_seed,training_loop='LCWA')
 
     if saveModel:
         result.save_to_directory(f"approach/trainedEmbeddings/{savename}")
@@ -63,7 +69,7 @@ def loadModel(savename="Test"):
     model = torch.load(f"approach/trainedEmbeddings/{savename}/trained_model.pkl")
     return model
 
-def createEmbeddingMaps(model, triples):
+def createEmbeddingMaps_TransE(model, triples):
     '''
     create maps of the embedding to the respective entities and relations, for easier reuse
     '''
@@ -84,6 +90,33 @@ def createEmbeddingMaps(model, triples):
     for rid in range(triples.num_relations):
         r = triples.relation_id_to_label[rid]
         relation2embedding[r] = list(r_emb_numpy[rid])
+        # Sanity Check if conversion stays consistent from id to labels
+        assert triples.relation_to_id[r] == rid, 'Relation IDs not consistent'
+
+    return entity2embedding, relation2embedding
+
+def createEmbeddingMaps_DistMult(model, triples):
+    '''
+    create maps of the embedding to the respective entities and relations, for easier reuse
+    '''
+    e_emb = model.entity_representations
+    entity_ids = torch.LongTensor([*range(triples.num_entities)])
+    e_emb_numpy = e_emb[0](entity_ids).detach().numpy()
+    entity2embedding = {}
+    for eid in range(triples.num_entities):
+        e = triples.entity_id_to_label[eid]
+        entity2embedding[e] = list(e_emb_numpy[eid])
+        # Sanity Check if conversion stays consistent from id to labels
+        assert triples.entity_to_id[e] == eid, 'Entity IDs not consistent'
+
+    r_emb = model.relation_representations
+    relation_ids = torch.LongTensor([*range(triples.num_relations)])
+    r_emb_numpy = r_emb[0](relation_ids).detach().numpy()
+    relation2embedding = {}
+    for rid in range(triples.num_relations):
+        r = triples.relation_id_to_label[rid]
+        relation2embedding[r] = list(r_emb_numpy[rid])
+        
         # Sanity Check if conversion stays consistent from id to labels
         assert triples.relation_to_id[r] == rid, 'Relation IDs not consistent'
 

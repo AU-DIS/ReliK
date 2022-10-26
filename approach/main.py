@@ -39,9 +39,12 @@ def retrieveOrTrainEmbedding():
     if sett.LOAD_MODEL and isFile:
         emb_model = emb.loadModel(savename=sett.SAVENAME)
     else:
-        emb_model, emb_triples_used = emb.trainEmbedding(emb_train_triples, emb_test_triples, random_seed=42, saveModel=sett.STORE_MODEL, savename = sett.SAVENAME)
+        emb_model, emb_triples_used = emb.trainEmbedding(emb_train_triples, emb_test_triples, random_seed=42, saveModel=sett.STORE_MODEL, savename = sett.SAVENAME, embedd = sett.EMBEDDING_TYPE)
     
-    entity2embedding, relation2embedding = emb.createEmbeddingMaps(emb_model, emb_train_triples)
+    if sett.EMBEDDING_TYPE == 'TransE':
+        entity2embedding, relation2embedding = emb.createEmbeddingMaps_TransE(emb_model, emb_train_triples)
+    elif sett.EMBEDDING_TYPE == 'DistMult':
+        entity2embedding, relation2embedding = emb.createEmbeddingMaps_DistMult(emb_model, emb_train_triples)
 
     # Sanity Check if triples have been changed while doing the embedding
     if not sett.LOAD_MODEL:
@@ -62,7 +65,9 @@ def makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedd
 
     start_time_clf_training = timeit.default_timer()
     X_train, X_test, y_train, y_test = cla.prepareTrainTestData(LP_triples_pos, LP_triples_neg, emb_train_triples)
-    if sett.DO_NORM1:
+    if sett.EMBEDDING_TYPE == 'DistMult':
+        clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding, pen='l1')
+    elif sett.DO_NORM1:
         clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding, pen='l1')
     else:
         clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding, pen='l2')
@@ -160,7 +165,9 @@ if __name__ == "__main__":
         
         # Get reliability value for KG
         start_time_reliability = timeit.default_timer()
-        if sett.DO_NOT_LABEL_BASED:
+        if sett.EMBEDDING_TYPE == 'DistMult':
+            local_reliability_score = rel.reliability_DistMult_local_normalization_as_Sum(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+        elif sett.DO_NOT_LABEL_BASED:
             if sett.DO_NORM1:
                 local_reliability_score = rel.reliability_local_normalization_as_Sum(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs, norm=1)
             else:
