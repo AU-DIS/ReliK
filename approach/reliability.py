@@ -133,10 +133,10 @@ def reliability_DistMult_local_normalization_as_Sum(all_triples, emb_train_tripl
                             score = score.detach().numpy()[0][0]
 
                             if ((h,r,t) in all_triples):
-                                sum_pos += 1/2 + (score/max_score)
+                                sum_pos += 1/2 + ((score/max_score)/2)
                                 counter_pos += 1
                             else:
-                                sum_neg += 1/2 + (score/max_score)
+                                sum_neg += 1/2 + ((score/max_score)/2)
                                 counter_neg += 1
         reliability_score.append(( (sum_pos/counter_pos) + (1-(sum_neg/counter_neg)) )/2)
         
