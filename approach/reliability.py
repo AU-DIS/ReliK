@@ -120,6 +120,8 @@ def reliability_DistMult_local_normalization_as_Sum(all_triples, emb_train_tripl
                             score = score.detach().numpy()[0][0]
                             if score > max_score:
                                 max_score = score
+                            if -score > max_score:
+                                max_score = -score
 
         for h in range(emb_train_triples.num_entities):
             if emb_train_triples.entity_id_to_label[h] in subgraph:
@@ -131,10 +133,10 @@ def reliability_DistMult_local_normalization_as_Sum(all_triples, emb_train_tripl
                             score = score.detach().numpy()[0][0]
 
                             if ((h,r,t) in all_triples):
-                                sum_pos += (score/max_score)
+                                sum_pos += 1/2 + (score/max_score)
                                 counter_pos += 1
                             else:
-                                sum_neg += (score/max_score)
+                                sum_neg += 1/2 + (score/max_score)
                                 counter_neg += 1
         reliability_score.append(( (sum_pos/counter_pos) + (1-(sum_neg/counter_neg)) )/2)
         
