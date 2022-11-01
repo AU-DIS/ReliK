@@ -2,9 +2,10 @@ import numpy as np
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
+from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 
-def trainLPClassifier(X_train, Y_train, entity2embedding, relation2embedding, type='LogisticRegression', pen='l2'):
+def trainLPClassifier(X_train, Y_train, entity2embedding, relation2embedding, type='LinearRegression', pen='l2'):
     '''
     Train specific Classifier
     '''
@@ -12,6 +13,8 @@ def trainLPClassifier(X_train, Y_train, entity2embedding, relation2embedding, ty
         clf = SVC()
     elif type == 'LogisticRegression':
         clf = LogisticRegression(max_iter=5000, penalty=pen)
+    elif type == 'LinearRegression':
+        clf = LinearRegression()
     '''
     if type == 'SVC':
         clf = SVC(max_iter=2000)
