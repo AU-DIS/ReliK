@@ -66,11 +66,11 @@ def makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedd
     start_time_clf_training = timeit.default_timer()
     X_train, X_test, y_train, y_test = cla.prepareTrainTestData(LP_triples_pos, LP_triples_neg, emb_train_triples)
     if sett.EMBEDDING_TYPE == 'DistMult':
-        clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding, pen='l1')
+        clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding)
     elif sett.DO_NORM1:
-        clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding, pen='l1')
+        clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding)
     else:
-        clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding, pen='l2')
+        clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding)
     end_time_clf_training = timeit.default_timer()
     LP_test_score = -1
     start_time_LP_score = timeit.default_timer()
