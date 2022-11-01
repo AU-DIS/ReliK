@@ -11,7 +11,7 @@ def trainLPClassifier(X_train, Y_train, entity2embedding, relation2embedding, ty
     if type == 'SVC':
         clf = SVC()
     elif type == 'LogisticRegression':
-        clf = LogisticRegression(penalty=pen)
+        clf = LogisticRegression(max_iter=5000, penalty=pen)
     '''
     if type == 'SVC':
         clf = SVC(max_iter=2000)
