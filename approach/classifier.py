@@ -5,14 +5,14 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 
-def trainLPClassifier(X_train, Y_train, entity2embedding, relation2embedding, type='LinearRegression', pen='l2'):
+def trainLPClassifier(X_train, Y_train, entity2embedding, relation2embedding, type='LogisticRegression'):
     '''
     Train specific Classifier
     '''
     if type == 'SVC':
         clf = SVC()
     elif type == 'LogisticRegression':
-        clf = LogisticRegression(max_iter=5000, penalty=pen)
+        clf = LogisticRegression(max_iter=5000)
     elif type == 'LinearRegression':
         clf = LinearRegression()
     '''
@@ -70,8 +70,12 @@ def testClassifierSubgraphs(classifier, X_test, y_test, entity2embedding, relati
                 X_test_emb.append([*entity2embedding[tp[0]],*relation2embedding[tp[1]],*entity2embedding[tp[2]]])
                 y_test_emb.append(y_test[index])
             index += 1
+        y_test_emb = np.array(y_test_emb, dtype='float')
         if X_test_emb == []:
-            LP_test_score.append(-1)
+            LP_test_score.append(-100)
+            continue
+        if len(X_test_emb) == 1:
+            LP_test_score.append(-100)
             continue
         LP_test_score.append(classifier.score(X_test_emb, y_test_emb))
         bigcount += 1
