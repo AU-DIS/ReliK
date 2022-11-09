@@ -161,7 +161,6 @@ if __name__ == "__main__":
         # train classifier and test it
         if sett.ORIGINAL_LP:
             LP_test_score, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = emb.baselineLP(emb_model, subgraphs, emb_train_triples, LP_triples_pos)
-            print('HELLO')
         else:
             LP_test_score, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples)
         print(f'finished LP Score')

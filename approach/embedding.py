@@ -164,8 +164,6 @@ def baselineLP(model, subgraphs, emb_train_triples, X_test):
                     score = model.score_hrt(ten)
                     score = score.detach().numpy()[0][0]
                     tmp_scores[r] = score
-                print()
-                print(tmp_scores)
                 id = max(tmp_scores, key=tmp_scores.get)
                 if id == tp[1]:
                     sum += 1
