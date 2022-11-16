@@ -29,7 +29,7 @@ def trainLPClassifier(X_train, Y_train, entity2embedding, relation2embedding, ty
     return clf
 
 
-def prepareTrainTestData(pos_triples, neg_triples, triples):
+def prepareTrainTestData(pos_triples, neg_triples, triples, test_size=0.33):
     '''
     creating data for classifier training/testing, with labels from the triples
     '''
@@ -47,7 +47,7 @@ def prepareTrainTestData(pos_triples, neg_triples, triples):
     X = dataset[:, :-1]
     y = dataset[:, -1]
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
     return X_train, X_test, y_train, y_test
 
 def testClassifier(classifier, X_test, y_test, entity2embedding, relation2embedding):

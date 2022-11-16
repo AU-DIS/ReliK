@@ -150,7 +150,7 @@ def getScoreForTripleList(X_test, emb_train_triples, model):
         score_list.append(score)
     return score_list
 
-def baselineLP(model, subgraphs, emb_train_triples, X_test):
+def baselineLP_relation(model, subgraphs, emb_train_triples, X_test):
     start_time_clf_training = timeit.default_timer()
     LP_score_list = []
     for subgraph in subgraphs:
@@ -164,6 +164,32 @@ def baselineLP(model, subgraphs, emb_train_triples, X_test):
                     score = model.score_hrt(ten)
                     score = score.detach().numpy()[0][0]
                     tmp_scores[r] = score
+                id = max(tmp_scores, key=tmp_scores.get)
+                if id == tp[1]:
+                    sum += 1
+                else:
+                    sum += 0
+                counter += 1
+        if counter > 2:
+            LP_score_list.append(sum/counter)
+        else:
+            LP_score_list.append(-100)
+    return LP_score_list, start_time_clf_training, start_time_clf_training, start_time_clf_training, start_time_clf_training
+
+def baselineLP_tail(model, subgraphs, emb_train_triples, X_test):
+    start_time_clf_training = timeit.default_timer()
+    LP_score_list = []
+    for subgraph in subgraphs:
+        sum = 0
+        counter = 0
+        for tp in X_test:
+            if (emb_train_triples.entity_id_to_label[tp[0]] in subgraph) and (emb_train_triples.entity_id_to_label[tp[2]] in subgraph):
+                tmp_scores = dict()
+                for tail in range(emb_train_triples.num_entities):
+                    ten = torch.tensor([[tp[0],tp[1],tail]])
+                    score = model.score_hrt(ten)
+                    score = score.detach().numpy()[0][0]
+                    tmp_scores[tail] = score
                 id = max(tmp_scores, key=tmp_scores.get)
                 if id == tp[1]:
                     sum += 1
