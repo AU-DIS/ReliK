@@ -70,7 +70,7 @@ def testClassifierSubgraphs(classifier, X_test, y_test, entity2embedding, relati
                 X_test_emb.append([*entity2embedding[tp[0]],*relation2embedding[tp[1]],*entity2embedding[tp[2]]])
                 y_test_emb.append(y_test[index])
             index += 1
-        y_test_emb = np.array(y_test_emb, dtype='float')
+        y_test_emb = np.array(y_test_emb)
         if X_test_emb == []:
             LP_test_score.append(-100)
             continue

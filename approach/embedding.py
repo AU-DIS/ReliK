@@ -191,7 +191,7 @@ def baselineLP_tail(model, subgraphs, emb_train_triples, X_test):
                     score = score.detach().numpy()[0][0]
                     tmp_scores[tail] = score
                 id = max(tmp_scores, key=tmp_scores.get)
-                if id == tp[1]:
+                if id == tp[2]:
                     sum += 1
                 else:
                     sum += 0
