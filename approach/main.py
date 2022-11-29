@@ -3,6 +3,7 @@ import datahandler as dh
 import classifier as cla
 import settings as sett
 import reliability as rel
+import compare_related as compre
 
 import torch
 import csv
@@ -150,6 +151,9 @@ if __name__ == "__main__":
     start_time_complete = timeit.default_timer()
     # Get and do Embedding
     start_time_emb_training = timeit.default_timer()
+    if sett.COMPARISON_TO_RELATED:
+        compre.compare_to_related()
+        quit()
     emb_model, all_triples, all_triples_set, LP_triples_pos, emb_train_triples, entity2embedding, relation2embedding, entity_to_id_map, relation_to_id_map = retrieveOrTrainEmbedding()
     end_time_emb_training = timeit.default_timer()
     print(f'finished Embedding')
