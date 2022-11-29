@@ -75,7 +75,7 @@ def compare_to_related():
         all_triples_set.add((tup[0],tup[1],tup[2]))
 
     result = pipeline(training=train_data,testing=test_data,validation=validation_data,model=TransE,model_kwargs=dict(embedding_dim=512, scoring_fct_norm=1),
-        training_loop='LCWA',training_kwargs=dict(num_epochs=50, batch_size=128),stopper='early',stopper_kwargs=dict(patience=10,relative_delta=0.0001,frequency=50),
+        training_loop='LCWA',training_kwargs=dict(num_epochs=400, batch_size=128),stopper='early',stopper_kwargs=dict(patience=10,relative_delta=0.0001,frequency=50),
         evaluation_kwargs=dict(batch_size=128)        
     )
     score_t = fullGraphLP_basic_tail(result.model, test_data.mapped_triples.tolist(), test_data, all_triples_set)
