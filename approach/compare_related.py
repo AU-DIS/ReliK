@@ -79,7 +79,7 @@ def compare_to_related():
         evaluation_kwargs=dict(batch_size=128)        
     )
     score_t = fullGraphLP_basic_tail(result.model, test_data.mapped_triples.tolist(), test_data, all_triples_set)
-    score_r = fullGraphLP_basic_relation(result.model, test_data.mapped_triples.tolist(), test_data, all_triples_set)
+    #score_r = fullGraphLP_basic_relation(result.model, test_data.mapped_triples.tolist(), test_data, all_triples_set)
     
     path = f'approach/scoreData/compareData'
     isExist = os.path.exists(path)
@@ -91,7 +91,7 @@ def compare_to_related():
     writer = csv.writer(c)
     data = ['tail','relation','triple classification']
     writer.writerow(data)
-    data = [score_t[0],score_r[0]]
+    data = [score_t[0]]#,score_r[0]]
     writer.writerow(data)
     c.close()
     return
