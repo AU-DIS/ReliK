@@ -161,7 +161,7 @@ def reliability_local_normalization_as_Sum(all_triples, emb_train_triples, model
                     if emb_train_triples.entity_id_to_label[t] in subgraph:
                         for r in range(emb_train_triples.num_relations):
                             ten = torch.tensor([[h,r,t]])
-                            score = model.score_hrt(ten,scoring_fct_norm=norm)
+                            score = model.score_hrt(ten)
                             score = score.detach().numpy()[0][0]
                             score = score * (-1)
                             if score > max_score:
@@ -173,7 +173,7 @@ def reliability_local_normalization_as_Sum(all_triples, emb_train_triples, model
                     if emb_train_triples.entity_id_to_label[t] in subgraph:
                         for r in range(emb_train_triples.num_relations):
                             ten = torch.tensor([[h,r,t]])
-                            score = model.score_hrt(ten,scoring_fct_norm=norm)
+                            score = model.score_hrt(ten)
                             score = score.detach().numpy()[0][0]
                             score = score * (-1)
 

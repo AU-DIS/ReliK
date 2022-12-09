@@ -46,6 +46,8 @@ def retrieveOrTrainEmbedding():
         entity2embedding, relation2embedding = emb.createEmbeddingMaps_TransE(emb_model, emb_train_triples)
     elif sett.EMBEDDING_TYPE == 'DistMult':
         entity2embedding, relation2embedding = emb.createEmbeddingMaps_DistMult(emb_model, emb_train_triples)
+    else:
+        entity2embedding, relation2embedding = emb.createEmbeddingMaps_DistMult(emb_model, emb_train_triples)
 
     # Sanity Check if triples have been changed while doing the embedding
     if not sett.LOAD_MODEL:
@@ -227,7 +229,8 @@ if __name__ == "__main__":
         if sett.ORIGINAL_LP:
             LP_test_score_tail, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = emb.baselineLP_tail(emb_model, subgraphs, emb_train_triples, LP_triples_pos)
             LP_test_score_rel, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = emb.baselineLP_relation(emb_model, subgraphs, emb_train_triples, LP_triples_pos)
-        LP_test_score, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples)
+        else:
+            LP_test_score, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples)
         print(f'finished LP Score')
         
         # Get reliability value for KG
@@ -303,8 +306,8 @@ if __name__ == "__main__":
         if sett.ORIGINAL_LP:
             data = ['subgraph', 'LP_test_score', 'local_reliability_score', 'LP_basic_tail', 'LP_basic_relation']
             writer.writerow(data)
-            for i in range(len(LP_test_score)):
-                data = [i, LP_test_score[i], local_reliability_score[i], LP_test_score_tail[i], LP_test_score_rel[i]]
+            for i in range(len(LP_test_score_tail)):
+                data = [i, -1, local_reliability_score[i], LP_test_score_tail[i], LP_test_score_rel[i]]
                 writer.writerow(data)
         else:
             data = ['subgraph', 'LP_test_score', 'local_reliability_score']
@@ -345,7 +348,7 @@ if __name__ == "__main__":
 
         c = open(f'{path}/{sett.NAME_OF_RUN}_emb_dis.csv', "w")
         writer = csv.writer(c)
-        data = ['subgraph','pos','some_neg','neg']
+        data = ['count','pos','some_neg','neg']
         writer.writerow(data)
         count = 0
         for ele in emb_dis_score_pos:
@@ -356,5 +359,30 @@ if __name__ == "__main__":
             writer.writerow(data)
             count += 1
         c.close()
+    if sett.DODIS_RELATION:
+        # data and scores between positive, negative and somewhat negatives triples
+        # to calculate distribution
+        X_some_neg, y_some_neg = dh.convertListToData_Relation(some_neg_triples, emb_train_triples, pos_sample=False)
+        X_neg, y_neg = dh.convertListToData_Relation(neg_triples, emb_train_triples, pos_sample=False)
+        X_pos, y_pos = dh.convertListToData_Relation(all_triples.tolist(), emb_train_triples, pos_sample=True)
+
+        for i in range(emb_train_triples.num_relations):
+            emb_dis_score_pos = emb.getScoreForTripleList(X_pos[i], emb_train_triples, emb_model)
+            emb_dis_score_neg = emb.getScoreForTripleList(X_neg[i], emb_train_triples, emb_model)
+            emb_dis_score_some_neg = emb.getScoreForTripleList(X_some_neg[i], emb_train_triples, emb_model)
+
+            c = open(f'{path}/{sett.NAME_OF_RUN}_emb_dis_rel_{emb_train_triples.relation_id_to_label[i]}.csv', "w")
+            writer = csv.writer(c)
+            data = ['count','pos','some_neg','neg']
+            writer.writerow(data)
+            count = 0
+            for i in range(min(len(emb_dis_score_pos),len(emb_dis_score_some_neg),len(emb_dis_score_neg))):
+                data = [i]
+                data.append(emb_dis_score_pos[i])
+                
+                data.append(emb_dis_score_some_neg[i])
+                data.append(emb_dis_score_neg[i])
+                writer.writerow(data)
+            c.close()
 
     

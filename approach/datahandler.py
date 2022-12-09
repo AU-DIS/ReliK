@@ -176,3 +176,25 @@ def convertListToData(sample_triples, triples, pos_sample=True):
     y = dataset[:, -1]
 
     return X, y
+
+def convertListToData_Relation(sample_triples, triples, pos_sample=True):
+    ds = dict()
+    for i in range(triples.num_relations):
+        ds[i] = []
+    if pos_sample:
+        for t in sample_triples:
+            ds[t[1]].append([triples.entity_id_to_label[t[0]], triples.relation_id_to_label[t[1]], triples.entity_id_to_label[t[2]], 1])
+    else:
+        for t in sample_triples:
+            ds[t[1]].append([triples.entity_id_to_label[t[0]], triples.relation_id_to_label[t[1]], triples.entity_id_to_label[t[2]], 0])
+
+    X_dict = dict()
+    y_dict = dict()
+    for i in range(triples.num_relations):
+        dataset = np.array(ds[i])
+        X = dataset[:, :-1]
+        y = dataset[:, -1]
+        X_dict[i] = X
+        y_dict[i] = y
+
+    return X_dict, y_dict

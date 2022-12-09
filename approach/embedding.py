@@ -4,6 +4,9 @@ import pykeen.datasets as dat
 
 from pykeen.models import TransE
 from pykeen.models import DistMult
+from pykeen.models import RotatE
+from pykeen.models import PairRE
+from pykeen.models import SimplE
 from pykeen.pipeline import pipeline
 import timeit
 
@@ -60,6 +63,21 @@ def trainEmbedding(training_set, test_set, random_seed=None, saveModel = False, 
             result = pipeline(training=training_set,testing=test_set,model=DistMult,training_loop='LCWA')
         else:
             result = pipeline(training=training_set,testing=test_set,model=DistMult,random_seed=random_seed,training_loop='LCWA')
+    elif embedd == 'RotatE':
+        if random_seed == None:
+            result = pipeline(training=training_set,testing=test_set,model=RotatE,training_loop='LCWA')
+        else:
+            result = pipeline(training=training_set,testing=test_set,model=RotatE,random_seed=random_seed,training_loop='LCWA')
+    elif embedd == 'PairRE':
+        if random_seed == None:
+            result = pipeline(training=training_set,testing=test_set,model=PairRE,training_loop='LCWA')
+        else:
+            result = pipeline(training=training_set,testing=test_set,model=PairRE,random_seed=random_seed,training_loop='LCWA')
+    elif embedd == 'SimplE':
+        if random_seed == None:
+            result = pipeline(training=training_set,testing=test_set,model=SimplE,training_loop='LCWA')
+        else:
+            result = pipeline(training=training_set,testing=test_set,model=SimplE,random_seed=random_seed,training_loop='LCWA')
 
     if saveModel:
         result.save_to_directory(f"approach/trainedEmbeddings/{savename}")
