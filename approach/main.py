@@ -102,12 +102,16 @@ def makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedd
 
     return LP_test_score, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score
 
-def fullGraphLP_basic_tail(model, LP_triples_pos, emb_train_triples):
+def fullGraphLP_basic_tail(model, LP_triples_pos, emb_train_triples, all_triples):
     LP_score_list = []
     sum = 0
     for tp in LP_triples_pos:
         tmp_scores = dict()
         for tail in range(emb_train_triples.num_entities):
+            tup = (tp[0],tp[1],tail)
+            if tup in all_triples and tail != tp[2]:
+                #print(f'Found pos triple that is not tested triple with tail:{tail} instead of test: {tp[2]}')
+                continue
             ten = torch.tensor([[tp[0],tp[1],tail]])
             score = model.score_hrt(ten)
             score = score.detach().numpy()[0][0]
@@ -122,16 +126,19 @@ def fullGraphLP_basic_tail(model, LP_triples_pos, emb_train_triples):
     fullgraph_score = sum/len(LP_score_list)
     return fullgraph_score, LP_score_list
 
-def fullGraphLP_basic_relation(model, LP_triples_pos, emb_train_triples):
+def fullGraphLP_basic_relation(model, LP_triples_pos, emb_train_triples, all_triples):
     LP_score_list = []
     sum = 0
     for tp in LP_triples_pos:
         tmp_scores = dict()
-        for r in range(emb_train_triples.num_relations):
-            ten = torch.tensor([[tp[0],r,tp[2]]])
+        for relation in range(emb_train_triples.num_relations):
+            tup = (tp[0],relation,tp[2])
+            if tup in all_triples and relation != tp[1]:
+                continue
+            ten = torch.tensor([[tp[0],relation,tp[2]]])
             score = model.score_hrt(ten)
             score = score.detach().numpy()[0][0]
-            tmp_scores[r] = score
+            tmp_scores[relation] = score
         id = max(tmp_scores, key=tmp_scores.get)
         if id == tp[1]:
             sum += 1
@@ -191,15 +198,15 @@ if __name__ == "__main__":
     if sett.DOFULLGRAPHLP:
         fullgraph_score_tail, score_list_tail = fullGraphLP_basic_tail(emb_model, LP_triples_pos, emb_train_triples)
         fullgraph_score_relation, score_list_relation = fullGraphLP_basic_relation(emb_model, LP_triples_pos, emb_train_triples)
-        fullgraph_score_clf, score_list_clf = fullGraphLP_classifier(LP_triples_pos, LP_triples_neg, emb_train_triples, entity2embedding, relation2embedding)
+        #fullgraph_score_clf, score_list_clf = fullGraphLP_classifier(LP_triples_pos, LP_triples_neg, emb_train_triples, entity2embedding, relation2embedding)
         c = open(f'{path}/{sett.NAME_OF_RUN}_fullGraph.csv', "w")
         writer = csv.writer(c)
         data = ['triple', 'basic head', 'basic relation', 'classifier']
         writer.writerow(data)
-        data = [-100, fullgraph_score_tail, fullgraph_score_relation, fullgraph_score_clf]
+        data = [-100, fullgraph_score_tail, fullgraph_score_relation, -100]
         writer.writerow(data)
-        for i in range(len(score_list_clf)):
-            data = [i, score_list_tail[i], score_list_relation[i], score_list_clf[i]]
+        for i in range(min(len(score_list_tail),len(score_list_relation))):
+            data = [i, score_list_tail[i], score_list_relation[i], -100]
             writer.writerow(data)
         c.close()
 
