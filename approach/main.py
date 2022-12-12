@@ -196,8 +196,8 @@ if __name__ == "__main__":
         os.makedirs(path)
 
     if sett.DOFULLGRAPHLP:
-        fullgraph_score_tail, score_list_tail = fullGraphLP_basic_tail(emb_model, LP_triples_pos, emb_train_triples)
-        fullgraph_score_relation, score_list_relation = fullGraphLP_basic_relation(emb_model, LP_triples_pos, emb_train_triples)
+        fullgraph_score_tail, score_list_tail = fullGraphLP_basic_tail(emb_model, LP_triples_pos, emb_train_triples, all_triples_set)
+        fullgraph_score_relation, score_list_relation = fullGraphLP_basic_relation(emb_model, LP_triples_pos, emb_train_triples, all_triples_set)
         #fullgraph_score_clf, score_list_clf = fullGraphLP_classifier(LP_triples_pos, LP_triples_neg, emb_train_triples, entity2embedding, relation2embedding)
         c = open(f'{path}/{sett.NAME_OF_RUN}_fullGraph.csv', "w")
         writer = csv.writer(c)
