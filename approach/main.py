@@ -333,7 +333,7 @@ if __name__ == "__main__":
         if sett.DOSCORE_RELATION_BASED and sett.EMBEDDING_TYPE == 'DistMult':
             relation_reliability_score = rel.reliability_DistMult_local_normalization_as_Sum_Rel_Freq(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
         elif sett.DOSCORE_RELATION_BASED:
-            relation_reliability_score = rel.reliability_DistMult_local_normalization_as_Sum_Rel_Freq(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs, norm=2)
+            relation_reliability_score = rel.reliability_local_normalization_as_Sum_Rel_Freq(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs, norm=2)
         end_time_complete = timeit.default_timer()
 
         time_complete = end_time_complete - start_time_complete
