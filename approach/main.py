@@ -361,16 +361,19 @@ if __name__ == "__main__":
             for i in range(len(LP_test_score_tail)):
                 data = [i, -1, local_reliability_score[i], LP_test_score_tail[i], LP_test_score_rel[i]]
                 writer.writerow(data)
-        elif sett.DOSCORE_RELATION_BASED:
-            data = ['subgraph', 'LP_test_score', 'local_reliability_score', 'reliabiliy_relation', 'LP_basic_tail', 'LP_basic_relation']
-            writer.writerow(data)
-            for i in range(len(LP_test_score_tail)):
-                data = [i, LP_test_score[i], local_reliability_score[i], LP_test_score_tail[i], LP_test_score_rel[i]]
-                writer.writerow(data)
         else:
             data = ['subgraph', 'LP_test_score', 'local_reliability_score', 'LP_basic_tail', 'LP_basic_relation']
             writer.writerow(data)
             for i in range(len(LP_test_score)):
+                data = [i, LP_test_score[i], local_reliability_score[i], LP_test_score_tail[i], LP_test_score_rel[i]]
+                writer.writerow(data)
+        c.close()
+
+        c = open(f'{path}/{sett.NAME_OF_RUN}_rel.csv', "w")
+        if sett.DOSCORE_RELATION_BASED:
+            data = ['subgraph', 'LP_test_score', 'local_reliability_score', 'reliabiliy_relation', 'LP_basic_tail', 'LP_basic_relation']
+            writer.writerow(data)
+            for i in range(len(LP_test_score_tail)):
                 data = [i, LP_test_score[i], local_reliability_score[i], LP_test_score_tail[i], LP_test_score_rel[i]]
                 writer.writerow(data)
         c.close()
