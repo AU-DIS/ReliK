@@ -353,27 +353,29 @@ if __name__ == "__main__":
         print(f'Time precentage from measured steps {format(time_percentage, ".4f")}')
         print()
 
-        c = open(f'{path}/{sett.NAME_OF_RUN}.csv', "w")
-        writer = csv.writer(c)
+        
         if sett.ORIGINAL_LP:
+            c = open(f'{path}/{sett.NAME_OF_RUN}.csv', "w")
+            writer = csv.writer(c)
             data = ['subgraph', 'LP_test_score', 'local_reliability_score', 'LP_basic_tail', 'LP_basic_relation']
             writer.writerow(data)
             for i in range(len(LP_test_score_tail)):
                 data = [i, -1, local_reliability_score[i], LP_test_score_tail[i], LP_test_score_rel[i]]
                 writer.writerow(data)
-        else:
-            data = ['subgraph', 'LP_test_score', 'local_reliability_score', 'LP_basic_tail', 'LP_basic_relation']
-            writer.writerow(data)
-            for i in range(len(LP_test_score)):
-                data = [i, LP_test_score[i], local_reliability_score[i], LP_test_score_tail[i], LP_test_score_rel[i]]
-                writer.writerow(data)
-        c.close()
-
-        c = open(f'{path}/{sett.NAME_OF_RUN}_rel.csv', "w")
-        if sett.DOSCORE_RELATION_BASED:
+        elif sett.DOSCORE_RELATION_BASED:
+            c = open(f'{path}/{sett.NAME_OF_RUN}_rel.csv', "w")
+            writer = csv.writer(c)
             data = ['subgraph', 'LP_test_score', 'local_reliability_score', 'reliabiliy_relation', 'LP_basic_tail', 'LP_basic_relation']
             writer.writerow(data)
             for i in range(len(LP_test_score_tail)):
+                data = [i, LP_test_score[i], local_reliability_score[i], LP_test_score_tail[i], LP_test_score_rel[i]]
+                writer.writerow(data)
+        else:
+            c = open(f'{path}/{sett.NAME_OF_RUN}.csv', "w")
+            writer = csv.writer(c)
+            data = ['subgraph', 'LP_test_score', 'local_reliability_score', 'LP_basic_tail', 'LP_basic_relation']
+            writer.writerow(data)
+            for i in range(len(LP_test_score)):
                 data = [i, LP_test_score[i], local_reliability_score[i], LP_test_score_tail[i], LP_test_score_rel[i]]
                 writer.writerow(data)
         c.close()
