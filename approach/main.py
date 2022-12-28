@@ -4,6 +4,7 @@ import classifier as cla
 import settings as sett
 import reliability as rel
 import compare_related as compre
+import my_stat
 
 import torch
 import csv
@@ -16,23 +17,29 @@ from pykeen.triples import TriplesFactory
 
 def retrieveOrTrainEmbedding():
     # Getting Data from dataset, as tensor of triples and mappings from entity to ids
-    all_triples, all_triples_set, entity_to_id_map, relation_to_id_map = emb.getDataFromPykeen(datasetname=sett.DATASETNAME)
+    all_triples, all_triples_set, entity_to_id_map, relation_to_id_map, test_triples, validation_triples = emb.getDataFromPykeen(datasetname=sett.DATASETNAME)
     
     # Split Data between embedding and LP classifier part
-    emb_triples, LP_triples = train_test_split(all_triples, test_size=sett.LP_EMB_SPLIT)
-    if sett.MAKE_TRAINING_SMALLER:
-        emb_triples, throwaway = train_test_split(emb_triples, test_size=sett.SMALLER_RATIO)
-        LP_triples, throwaway = train_test_split(LP_triples, test_size=sett.SMALLER_RATIO)
-    LP_triples_pos = LP_triples.tolist()
+    if sett.OUT_OF_BOX:
+        emb_triples = TriplesFactory(all_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
+        emb_train_triples = TriplesFactory(all_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
+        LP_triples = test_triples.mapped_triples
+        LP_triples_pos = LP_triples.tolist()
+    else:
+        emb_triples, LP_triples = train_test_split(all_triples, test_size=sett.LP_EMB_SPLIT)
+        if sett.MAKE_TRAINING_SMALLER:
+            emb_triples, throwaway = train_test_split(emb_triples, test_size=sett.SMALLER_RATIO)
+            LP_triples, throwaway = train_test_split(LP_triples, test_size=sett.SMALLER_RATIO)
+        LP_triples_pos = LP_triples.tolist()
 
-    # Split Data between embedding train and test
-    emb_train_triples = TriplesFactory(emb_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
-    emb_test_triples = TriplesFactory(emb_triples[:1,:],entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
+        # Split Data between embedding train and test
+        emb_train_triples = TriplesFactory(emb_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
+        emb_test_triples = TriplesFactory(emb_triples[:1,:],entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
 
-    # Sanity Check if triples have been changed in the Factory
-    assert torch.equal(emb_triples,emb_train_triples.mapped_triples), "Triples changed in creation of Triples Factory"
-    assert entity_to_id_map == emb_train_triples.entity_to_id, "Entity mapping changed in creation of Triples Factory"
-    assert relation_to_id_map == emb_train_triples.relation_to_id, "Relation mapping changed in creation of Triples Factory"
+        # Sanity Check if triples have been changed in the Factory
+        #assert torch.equal(emb_triples,emb_train_triples.mapped_triples), "Triples changed in creation of Triples Factory"
+        #assert entity_to_id_map == emb_train_triples.entity_to_id, "Entity mapping changed in creation of Triples Factory"
+        #assert relation_to_id_map == emb_train_triples.relation_to_id, "Relation mapping changed in creation of Triples Factory"
 
     # Train and create embedding model
     
@@ -40,7 +47,10 @@ def retrieveOrTrainEmbedding():
     if sett.LOAD_MODEL and isFile:
         emb_model = emb.loadModel(savename=sett.SAVENAME)
     else:
-        emb_model, emb_triples_used = emb.trainEmbedding(emb_train_triples, emb_test_triples, random_seed=42, saveModel=sett.STORE_MODEL, savename = sett.SAVENAME, embedd = sett.EMBEDDING_TYPE)
+        if sett.OUT_OF_BOX:
+            emb_model, emb_triples_used = emb.trainEmbeddingOutOfBox(emb_triples, test_triples, validation_triples, random_seed=42, saveModel=sett.STORE_MODEL, savename = sett.SAVENAME, embedd = sett.EMBEDDING_TYPE)
+        else:
+            emb_model, emb_triples_used = emb.trainEmbedding(emb_train_triples, emb_test_triples, random_seed=42, saveModel=sett.STORE_MODEL, savename = sett.SAVENAME, embedd = sett.EMBEDDING_TYPE, dimension = sett.DIMENSIONS)
     
     if sett.EMBEDDING_TYPE == 'TransE':
         entity2embedding, relation2embedding = emb.createEmbeddingMaps_TransE(emb_model, emb_train_triples)
@@ -50,10 +60,10 @@ def retrieveOrTrainEmbedding():
         entity2embedding, relation2embedding = emb.createEmbeddingMaps_DistMult(emb_model, emb_train_triples)
 
     # Sanity Check if triples have been changed while doing the embedding
-    if not sett.LOAD_MODEL:
-        assert torch.equal(emb_triples,emb_triples_used.mapped_triples), "Triples changed after embedding"
-        assert entity_to_id_map == emb_triples_used.entity_to_id, "Entity mapping changed after embedding"
-        assert relation_to_id_map == emb_triples_used.relation_to_id, "Relation mapping changed after embedding"
+    #if not sett.LOAD_MODEL:
+        #assert torch.equal(emb_triples,emb_triples_used.mapped_triples), "Triples changed after embedding"
+        #assert entity_to_id_map == emb_triples_used.entity_to_id, "Entity mapping changed after embedding"
+        #assert relation_to_id_map == emb_triples_used.relation_to_id, "Relation mapping changed after embedding"
 
     return emb_model, all_triples, all_triples_set, LP_triples_pos, emb_train_triples, entity2embedding, relation2embedding, entity_to_id_map, relation_to_id_map
 
@@ -198,16 +208,46 @@ if __name__ == "__main__":
     if sett.DOFULLGRAPHLP:
         fullgraph_score_tail, score_list_tail = fullGraphLP_basic_tail(emb_model, LP_triples_pos, emb_train_triples, all_triples_set)
         fullgraph_score_relation, score_list_relation = fullGraphLP_basic_relation(emb_model, LP_triples_pos, emb_train_triples, all_triples_set)
-        #fullgraph_score_clf, score_list_clf = fullGraphLP_classifier(LP_triples_pos, LP_triples_neg, emb_train_triples, entity2embedding, relation2embedding)
+        fullgraph_score_clf, score_list_clf = fullGraphLP_classifier(LP_triples_pos, LP_triples_neg, emb_train_triples, entity2embedding, relation2embedding)
         c = open(f'{path}/{sett.NAME_OF_RUN}_fullGraph.csv', "w")
         writer = csv.writer(c)
         data = ['triple', 'basic head', 'basic relation', 'classifier']
         writer.writerow(data)
-        data = [-100, fullgraph_score_tail, fullgraph_score_relation, -100]
+        data = [-100, fullgraph_score_tail, fullgraph_score_relation, fullgraph_score_clf]
         writer.writerow(data)
         for i in range(min(len(score_list_tail),len(score_list_relation))):
-            data = [i, score_list_tail[i], score_list_relation[i], -100]
+            data = [i, score_list_tail[i], score_list_relation[i], score_list_clf[i]]
             writer.writerow(data)
+        c.close()
+    
+    if sett.DO_F1:
+        fg_score_tail, fg_score_relation = my_stat.fullGraphLP_F1(emb_model, LP_triples_pos, emb_train_triples, all_triples_set)
+        #fg_score_relation = my_stat.fullGraphLP_F1_relation(emb_model, LP_triples_pos, emb_train_triples, all_triples_set)
+
+        c = open(f'{path}/{sett.NAME_OF_RUN}_fullGraph_tail_prediction_stats.csv', "w")
+        writer = csv.writer(c)
+        data = ['entity', 'precision', 'recall', 'f1-score', 'support']
+        print(fg_score_tail)
+        writer.writerow(data)
+        for i in fg_score_tail:
+            if i=='accuracy':
+                data =[i,'','',fg_score_tail[i],'']
+            else:
+                data = [i,fg_score_tail[i]['precision'], fg_score_tail[i]['recall'], fg_score_tail[i]['f1-score'], fg_score_tail[i]['support']]
+            writer.writerow(data)
+        c.close()
+
+        c = open(f'{path}/{sett.NAME_OF_RUN}_fullGraph_relation_prediction_stats.csv', "w")
+        writer = csv.writer(c)
+        data = ['entity', 'precision', 'recall', 'f1-score', 'support']
+        writer.writerow(data)
+        for i in fg_score_relation:
+            if i=='accuracy':
+                data =[i,'','',fg_score_tail[i],'']
+            else:
+                data = [i,fg_score_relation[i]['precision'], fg_score_relation[i]['recall'], fg_score_relation[i]['f1-score'], fg_score_relation[i]['support']]
+            writer.writerow(data)
+            
         c.close()
 
     if sett.DOSCORE:
@@ -237,6 +277,8 @@ if __name__ == "__main__":
             LP_test_score_tail, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = emb.baselineLP_tail(emb_model, subgraphs, emb_train_triples, LP_triples_pos, all_triples_set)
             LP_test_score_rel, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = emb.baselineLP_relation(emb_model, subgraphs, emb_train_triples, LP_triples_pos, all_triples_set)
         else:
+            LP_test_score_tail, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = emb.baselineLP_tail(emb_model, subgraphs, emb_train_triples, LP_triples_pos, all_triples_set)
+            LP_test_score_rel, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = emb.baselineLP_relation(emb_model, subgraphs, emb_train_triples, LP_triples_pos, all_triples_set)
             LP_test_score, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples)
         print(f'finished LP Score')
         
@@ -288,7 +330,10 @@ if __name__ == "__main__":
                 count += 1
             c.close()
         end_time_reliability = timeit.default_timer()
-
+        if sett.DOSCORE_RELATION_BASED and sett.EMBEDDING_TYPE == 'DistMult':
+            relation_reliability_score = rel.reliability_DistMult_local_normalization_as_Sum_Rel_Freq(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+        elif sett.DOSCORE_RELATION_BASED:
+            relation_reliability_score = rel.reliability_DistMult_local_normalization_as_Sum_Rel_Freq(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs, norm=2)
         end_time_complete = timeit.default_timer()
 
         time_complete = end_time_complete - start_time_complete
@@ -316,11 +361,17 @@ if __name__ == "__main__":
             for i in range(len(LP_test_score_tail)):
                 data = [i, -1, local_reliability_score[i], LP_test_score_tail[i], LP_test_score_rel[i]]
                 writer.writerow(data)
+        elif sett.DOSCORE_RELATION_BASED:
+            data = ['subgraph', 'LP_test_score', 'local_reliability_score', 'reliabiliy_relation', 'LP_basic_tail', 'LP_basic_relation']
+            writer.writerow(data)
+            for i in range(len(LP_test_score_tail)):
+                data = [i, LP_test_score[i], local_reliability_score[i], LP_test_score_tail[i], LP_test_score_rel[i]]
+                writer.writerow(data)
         else:
-            data = ['subgraph', 'LP_test_score', 'local_reliability_score']
+            data = ['subgraph', 'LP_test_score', 'local_reliability_score', 'LP_basic_tail', 'LP_basic_relation']
             writer.writerow(data)
             for i in range(len(LP_test_score)):
-                data = [i, LP_test_score[i], local_reliability_score[i]]
+                data = [i, LP_test_score[i], local_reliability_score[i], LP_test_score_tail[i], LP_test_score_rel[i]]
                 writer.writerow(data)
         c.close()
         
