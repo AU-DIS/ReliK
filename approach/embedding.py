@@ -66,7 +66,7 @@ def trainEmbeddingMore(training_set, test_set, validation_set, random_seed=None,
     elif embedd == 'SimplE':
         mod = SimplE
     
-    result = pipeline(training=training_set,testing=test_set,validation=validation_set,model=mod,model_kwargs=dict(embedding_dim=512, scoring_fct_norm=1),
+    result = pipeline(training=training_set,testing=test_set,validation=validation_set,model=mod,model_kwargs=dict(embedding_dim=512),
         training_loop='LCWA',training_kwargs=dict(num_epochs=100, batch_size=128),stopper='early',stopper_kwargs=dict(patience=10,relative_delta=0.0001,frequency=50),
         evaluation_kwargs=dict(batch_size=128),random_seed=random_seed        
     )
