@@ -50,7 +50,7 @@ def retrieveOrTrainEmbedding():
         if sett.OUT_OF_BOX:
             emb_model, emb_triples_used = emb.trainEmbeddingOutOfBox(emb_triples, test_triples, validation_triples, random_seed=42, saveModel=sett.STORE_MODEL, savename = sett.SAVENAME, embedd = sett.EMBEDDING_TYPE)
         elif sett.MORE_TRAIN:
-            emb_model, emb_triples_used = emb.trainEmbeddingMore(emb_train_triples, test_triples, validation_triples, random_seed=42, saveModel=sett.STORE_MODEL, savename = sett.SAVENAME, embedd = sett.EMBEDDING_TYPE, dimension = sett.DIMENSIONS)
+            emb_model, emb_triples_used = emb.trainEmbeddingMore(emb_train_triples, test_triples, validation_triples, random_seed=42, saveModel=sett.STORE_MODEL, savename = sett.SAVENAME, embedd = sett.EMBEDDING_TYPE, dimension = sett.DIMENSIONS, epoch_nmb = sett.EPOCH_NMB)
         else:
             emb_model, emb_triples_used = emb.trainEmbedding(emb_train_triples, emb_test_triples, random_seed=42, saveModel=sett.STORE_MODEL, savename = sett.SAVENAME, embedd = sett.EMBEDDING_TYPE, dimension = sett.DIMENSIONS)
     

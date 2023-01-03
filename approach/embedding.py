@@ -51,7 +51,7 @@ def getDataFromPykeen(datasetname='Nations'):
 
     return all_triples_tensor, all_triples_set, entity_to_id_map, relation_to_id_map, test_triples, validation_triples
 
-def trainEmbeddingMore(training_set, test_set, validation_set, random_seed=None, saveModel = False, savename="Test", embedd="TransE", dimension = 50):
+def trainEmbeddingMore(training_set, test_set, validation_set, random_seed=None, saveModel = False, savename="Test", embedd="TransE", dimension = 50, epoch_nmb = 100):
     '''
     Train embedding for given triples
     '''
