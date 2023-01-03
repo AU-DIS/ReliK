@@ -47,9 +47,33 @@ def getDataFromPykeen(datasetname='Nations'):
     for tup in all_triples_tensor.tolist():
         all_triples_set.add((tup[0],tup[1],tup[2]))
     validation_triples = dataset.validation
-    test_triples = dataset.validation
+    test_triples = dataset.testing
 
     return all_triples_tensor, all_triples_set, entity_to_id_map, relation_to_id_map, test_triples, validation_triples
+
+def trainEmbeddingMore(training_set, test_set, validation_set, random_seed=None, saveModel = False, savename="Test", embedd="TransE", dimension = 50):
+    '''
+    Train embedding for given triples
+    '''
+    if embedd == 'TransE':
+        mod = TransE
+    elif embedd == 'DistMult':
+        mod = DistMult
+    elif embedd == 'RotatE':
+        mod = RotatE
+    elif embedd == 'PairRE':
+        mod = PairRE
+    elif embedd == 'SimplE':
+        mod = SimplE
+    
+    result = pipeline(training=training_set,testing=test_set,validation=validation_set,model=mod,model_kwargs=dict(embedding_dim=512, scoring_fct_norm=1),
+        training_loop='LCWA',training_kwargs=dict(num_epochs=100, batch_size=128),stopper='early',stopper_kwargs=dict(patience=10,relative_delta=0.0001,frequency=50),
+        evaluation_kwargs=dict(batch_size=128),random_seed=random_seed        
+    )
+    if saveModel:
+        result.save_to_directory(f"approach/trainedEmbeddings/{savename}")
+
+    return result.model, result.training
 
 def trainEmbedding(training_set, test_set, random_seed=None, saveModel = False, savename="Test", embedd="TransE", dimension = 50):
     '''
