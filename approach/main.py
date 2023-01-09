@@ -76,97 +76,19 @@ def makeNegTriples(all_triples_set, all_triples, emb_train_triples):
 
     return neg_triples, some_neg_triples, LP_triples_neg, related_nodes
 
-def makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples):
+def makeTCPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples):
 
     start_time_clf_training = timeit.default_timer()
     X_train, X_test, y_train, y_test = cla.prepareTrainTestData(LP_triples_pos, LP_triples_neg, emb_train_triples)
-    if sett.EMBEDDING_TYPE == 'DistMult':
-        clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding)
-    elif sett.DO_NORM1:
-        clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding)
-    else:
-        clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding)
+    clf = cla.trainClassifier(X_train, y_train, entity2embedding, relation2embedding)
     end_time_clf_training = timeit.default_timer()
     LP_test_score = -1
     start_time_LP_score = timeit.default_timer()
-    if sett.DO_NOT_LABEL_BASED:
-        LP_test_score = cla.testClassifierSubgraphs(clf, X_test, y_test, entity2embedding, relation2embedding, subgraphs)
-    if sett.DO_THREE_BASED:
-        LP_test_score = cla.testClassifierSubgraphs(clf, X_test, y_test, entity2embedding, relation2embedding, subgraphs)
-    if sett.DO_LABEL_BASED:
-        LP_test_score_label = cla.testClassifierSubgraphsOnLabels(clf, X_test, y_test, entity2embedding, relation2embedding, subgraphs, emb_train_triples)
-
-        c = open(f'{path}/{sett.NAME_OF_RUN}_LP_label.csv', "w")
-        writer = csv.writer(c)
-        data = ['subgraph']
-        for r in range(emb_train_triples.num_relations): 
-            data.append(emb_train_triples.relation_id_to_label[r])
-        writer.writerow(data)
-        count = 0
-        for dic in LP_test_score_label:
-            data = [count]
-            for r in range(emb_train_triples.num_relations): 
-                data.append(dic[emb_train_triples.relation_id_to_label[r]])
-            writer.writerow(data)
-            count += 1
-        c.close()
+    
+    LP_test_score = cla.testClassifierSubgraphs(clf, X_test, y_test, entity2embedding, relation2embedding, subgraphs)
     end_time_LP_score = timeit.default_timer()
 
     return LP_test_score, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score
-
-def fullGraphLP_basic_tail(model, LP_triples_pos, emb_train_triples, all_triples):
-    LP_score_list = []
-    sum = 0
-    for tp in LP_triples_pos:
-        tmp_scores = dict()
-        for tail in range(emb_train_triples.num_entities):
-            tup = (tp[0],tp[1],tail)
-            if tup in all_triples and tail != tp[2]:
-                #print(f'Found pos triple that is not tested triple with tail:{tail} instead of test: {tp[2]}')
-                continue
-            ten = torch.tensor([[tp[0],tp[1],tail]])
-            score = model.score_hrt(ten)
-            score = score.detach().numpy()[0][0]
-            tmp_scores[tail] = score
-        id = max(tmp_scores, key=tmp_scores.get)
-        if id == tp[2]:
-            sum += 1
-            LP_score_list.append(1)
-        else:
-            sum += 0
-            LP_score_list.append(0)
-    fullgraph_score = sum/len(LP_score_list)
-    return fullgraph_score, LP_score_list
-
-def fullGraphLP_basic_relation(model, LP_triples_pos, emb_train_triples, all_triples):
-    LP_score_list = []
-    sum = 0
-    for tp in LP_triples_pos:
-        tmp_scores = dict()
-        for relation in range(emb_train_triples.num_relations):
-            tup = (tp[0],relation,tp[2])
-            if tup in all_triples and relation != tp[1]:
-                continue
-            ten = torch.tensor([[tp[0],relation,tp[2]]])
-            score = model.score_hrt(ten)
-            score = score.detach().numpy()[0][0]
-            tmp_scores[relation] = score
-        id = max(tmp_scores, key=tmp_scores.get)
-        if id == tp[1]:
-            sum += 1
-            LP_score_list.append(1)
-        else:
-            sum += 0
-            LP_score_list.append(0)
-    fullgraph_score = sum/len(LP_score_list)
-    return fullgraph_score, LP_score_list
-
-def fullGraphLP_classifier(LP_triples_pos, LP_triples_neg, emb_train_triples, entity2embedding, relation2embedding):
-    X_train, X_test, y_train, y_test = cla.prepareTrainTestData(LP_triples_pos, LP_triples_neg, emb_train_triples, test_size=0.5)
-    clf = cla.trainLPClassifier(X_train, y_train, entity2embedding, relation2embedding)
-    LP_score_list = cla.testClassifier(clf, X_test, y_test, entity2embedding, relation2embedding)
-    fullgraph_score = sum(LP_score_list)/len(LP_score_list)
-    return fullgraph_score, LP_score_list
 
 if __name__ == "__main__":
     start_time_complete = timeit.default_timer()
@@ -208,9 +130,9 @@ if __name__ == "__main__":
         os.makedirs(path)
 
     if sett.DOFULLGRAPHLP:
-        fullgraph_score_tail, score_list_tail = fullGraphLP_basic_tail(emb_model, LP_triples_pos, emb_train_triples, all_triples_set)
-        fullgraph_score_relation, score_list_relation = fullGraphLP_basic_relation(emb_model, LP_triples_pos, emb_train_triples, all_triples_set)
-        fullgraph_score_clf, score_list_clf = fullGraphLP_classifier(LP_triples_pos, LP_triples_neg, emb_train_triples, entity2embedding, relation2embedding)
+        fullgraph_score_tail, score_list_tail = my_stat.fullGraphLP_basic_tail(emb_model, LP_triples_pos, emb_train_triples, all_triples_set)
+        fullgraph_score_relation, score_list_relation = my_stat.fullGraphLP_basic_relation(emb_model, LP_triples_pos, emb_train_triples, all_triples_set)
+        fullgraph_score_clf, score_list_clf = my_stat.fullGraphLP_classifier(LP_triples_pos, LP_triples_neg, emb_train_triples, entity2embedding, relation2embedding)
         c = open(f'{path}/{sett.NAME_OF_RUN}_fullGraph.csv', "w")
         writer = csv.writer(c)
         data = ['triple', 'basic head', 'basic relation', 'classifier']
@@ -224,12 +146,10 @@ if __name__ == "__main__":
     
     if sett.DO_F1:
         fg_score_tail, fg_score_relation = my_stat.fullGraphLP_F1(emb_model, LP_triples_pos, emb_train_triples, all_triples_set)
-        #fg_score_relation = my_stat.fullGraphLP_F1_relation(emb_model, LP_triples_pos, emb_train_triples, all_triples_set)
 
         c = open(f'{path}/{sett.NAME_OF_RUN}_fullGraph_tail_prediction_stats.csv', "w")
         writer = csv.writer(c)
         data = ['entity', 'precision', 'recall', 'f1-score', 'support']
-        print(fg_score_tail)
         writer.writerow(data)
         for i in fg_score_tail:
             if i=='accuracy':
@@ -272,66 +192,20 @@ if __name__ == "__main__":
             print(f'created Subgraphs')
         end_time_create_subgraphs = timeit.default_timer()
         
-
-        # Split LP data for training and testing
         # train classifier and test it
-        if sett.ORIGINAL_LP:
-            LP_test_score_tail, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = emb.baselineLP_tail(emb_model, subgraphs, emb_train_triples, LP_triples_pos, all_triples_set)
-            LP_test_score_rel, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = emb.baselineLP_relation(emb_model, subgraphs, emb_train_triples, LP_triples_pos, all_triples_set)
-        else:
-            LP_test_score_tail, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = emb.baselineLP_tail(emb_model, subgraphs, emb_train_triples, LP_triples_pos, all_triples_set)
-            LP_test_score_rel, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = emb.baselineLP_relation(emb_model, subgraphs, emb_train_triples, LP_triples_pos, all_triples_set)
-            LP_test_score, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = makeLPPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples)
+        LP_test_score_tail, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = emb.baselineLP_tail(emb_model, subgraphs, emb_train_triples, LP_triples_pos, all_triples_set)
+        LP_test_score_rel, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = emb.baselineLP_relation(emb_model, subgraphs, emb_train_triples, LP_triples_pos, all_triples_set)
+        LP_test_score, start_time_clf_training, end_time_clf_training, start_time_LP_score, end_time_LP_score = makeTCPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples)
         print(f'finished LP Score')
         
         # Get reliability value for KG
         start_time_reliability = timeit.default_timer()
         if sett.EMBEDDING_TYPE == 'DistMult':
             local_reliability_score = rel.reliability_DistMult_local_normalization_as_Sum(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
-        elif sett.DO_NOT_LABEL_BASED:
-            if sett.DO_NORM1:
-                local_reliability_score = rel.reliability_local_normalization_as_Sum(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs, norm=1)
-            else:
-                local_reliability_score = rel.reliability_local_normalization_as_Sum(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs, norm=2)
-            #global_reliability_score = rel.reliability_global_normalization(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
-        if sett.DO_THREE_BASED:
-            local_reliability_score = rel.reliability_local_normalization_three_part(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs, related_nodes)
-            #global_reliability_score = local_reliability_score
-        if sett.DO_LABEL_BASED:
-            reliability_score_label = rel.reliabilityLabel(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
-            reliability_score_label2 = rel.reliabilityLabelNonSig(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
-
-            # Label specific files and data scores for evaluation
-            c = open(f'{path}/{sett.NAME_OF_RUN}_rel_label.csv', "w")
-            writer = csv.writer(c)
-            data = ['subgraph']
-            for r in range(emb_train_triples.num_relations): 
-                data.append(emb_train_triples.relation_id_to_label[r])
-            writer.writerow(data)
-            count = 0
-            for dic in reliability_score_label:
-                data = [count]
-                for r in range(emb_train_triples.num_relations): 
-                    data.append(dic[emb_train_triples.relation_id_to_label[r]])
-                writer.writerow(data)
-                count += 1
-            c.close()
-
-            c = open(f'{path}/{sett.NAME_OF_RUN}_rel_noSig_label.csv', "w")
-            writer = csv.writer(c)
-            data = ['subgraph']
-            for r in range(emb_train_triples.num_relations): 
-                data.append(emb_train_triples.relation_id_to_label[r])
-            writer.writerow(data)
-            count = 0
-            for dic in reliability_score_label2:
-                data = [count]
-                for r in range(emb_train_triples.num_relations): 
-                    data.append(dic[emb_train_triples.relation_id_to_label[r]])
-                writer.writerow(data)
-                count += 1
-            c.close()
+        else:
+            local_reliability_score = rel.reliability_local_normalization_as_Sum(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs, norm=2)
         end_time_reliability = timeit.default_timer()
+
         if sett.DOSCORE_RELATION_BASED and sett.EMBEDDING_TYPE == 'DistMult':
             relation_reliability_score = rel.reliability_DistMult_local_normalization_as_Sum_Rel_Freq(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
         elif sett.DOSCORE_RELATION_BASED:
@@ -355,16 +229,7 @@ if __name__ == "__main__":
         print(f'Time precentage from measured steps {format(time_percentage, ".4f")}')
         print()
 
-        
-        if sett.ORIGINAL_LP:
-            c = open(f'{path}/{sett.NAME_OF_RUN}.csv', "w")
-            writer = csv.writer(c)
-            data = ['subgraph', 'LP_test_score', 'local_reliability_score', 'LP_basic_tail', 'LP_basic_relation']
-            writer.writerow(data)
-            for i in range(len(LP_test_score_tail)):
-                data = [i, -1, local_reliability_score[i], LP_test_score_tail[i], LP_test_score_rel[i]]
-                writer.writerow(data)
-        elif sett.DOSCORE_RELATION_BASED:
+        if sett.DOSCORE_RELATION_BASED:
             c = open(f'{path}/{sett.NAME_OF_RUN}_rel.csv', "w")
             writer = csv.writer(c)
             data = ['subgraph', 'LP_test_score', 'local_reliability_score', 'reliabiliy_relation', 'LP_basic_tail', 'LP_basic_relation']
@@ -391,11 +256,7 @@ if __name__ == "__main__":
         if newFile:
             data = ['experiment run','dataset', 'number of subgraphs', 'size of subgraphs', 'complete time', 'embedding training time', 'classifier training time', 'LP score time', 'reliability time', 'time from measured', 'percentage of measured', 'norm']
             writer.writerow(data)
-        if sett.DO_NORM1:
-            norm = "1-Norm"
-        else:
-            norm = "2-Norm"
-        data = [sett.NAME_OF_RUN, sett.DATASETNAME, sett.AMOUNT_OF_SUBGRAPHS, sett.SIZE_OF_SUBGRAPHS, time_complete, time_emb_training, time_clf_training, time_LP_score, time_reliability, time_measured, time_percentage, norm]
+        data = [sett.NAME_OF_RUN, sett.DATASETNAME, sett.AMOUNT_OF_SUBGRAPHS, sett.SIZE_OF_SUBGRAPHS, time_complete, time_emb_training, time_clf_training, time_LP_score, time_reliability, time_measured, time_percentage]
         writer.writerow(data)
         c.close()
 
