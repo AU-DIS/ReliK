@@ -242,6 +242,151 @@ def reliability_local_normalization_as_Difference_in_Average(all_triples, emb_tr
         
     return reliability_score, max_score, min_score
 
+def reliability_local_normalization_Ratio(all_triples, emb_train_triples, model, entity2embedding, relation2embedding, subgraphs, norm):
+    '''
+    Getting the reliability sum as currently defined
+    '''
+    reliability_score = []
+    for subgraph in subgraphs:
+        
+        max_score = 0
+        counter_neg = 0
+        counter_pos = 0
+        sum_neg = 0
+        sum_pos = 0
+
+        for h in range(emb_train_triples.num_entities):
+            if emb_train_triples.entity_id_to_label[h] in subgraph:
+                for t in range(emb_train_triples.num_entities):
+                    if emb_train_triples.entity_id_to_label[t] in subgraph:
+                        for r in range(emb_train_triples.num_relations):
+                            ten = torch.tensor([[h,r,t]])
+                            score = model.score_hrt(ten)
+                            score = score.detach().numpy()[0][0]
+                            score = score * (-1)
+                            if score > max_score:
+                                max_score = score
+
+        for h in range(emb_train_triples.num_entities):
+            if emb_train_triples.entity_id_to_label[h] in subgraph:
+                for t in range(emb_train_triples.num_entities):
+                    if emb_train_triples.entity_id_to_label[t] in subgraph:
+                        for r in range(emb_train_triples.num_relations):
+                            ten = torch.tensor([[h,r,t]])
+                            score = model.score_hrt(ten)
+                            score = score.detach().numpy()[0][0]
+                            score = score * (-1)
+
+                            if ((h,r,t) in all_triples):
+                                sum_pos += 1-(score/max_score)
+                                counter_pos += 1
+                            else:
+                                sum_neg += 1-(score/max_score)
+                                counter_neg += 1
+        reliability_score.append( (sum_pos/counter_pos) / (1-(sum_neg/counter_neg)) )
+        
+    return reliability_score
+
+def reliability_DistMult_local_normalization_Ratio(all_triples, emb_train_triples, model, entity2embedding, relation2embedding, subgraphs):
+    '''
+    Getting the reliability sum as currently defined
+    '''
+    reliability_score = []
+    for subgraph in subgraphs:
+        
+        max_score = 0
+        counter_neg = 0
+        counter_pos = 0
+        sum_neg = 0
+        sum_pos = 0
+
+        for h in range(emb_train_triples.num_entities):
+            if emb_train_triples.entity_id_to_label[h] in subgraph:
+                for t in range(emb_train_triples.num_entities):
+                    if emb_train_triples.entity_id_to_label[t] in subgraph:
+                        for r in range(emb_train_triples.num_relations):
+                            ten = torch.tensor([[h,r,t]])
+                            score = model.score_hrt(ten)
+                            score = score.detach().numpy()[0][0]
+                            if score > max_score:
+                                max_score = score
+                            if -score > max_score:
+                                max_score = -score
+
+        for h in range(emb_train_triples.num_entities):
+            if emb_train_triples.entity_id_to_label[h] in subgraph:
+                for t in range(emb_train_triples.num_entities):
+                    if emb_train_triples.entity_id_to_label[t] in subgraph:
+                        for r in range(emb_train_triples.num_relations):
+                            ten = torch.tensor([[h,r,t]])
+                            score = model.score_hrt(ten)
+                            score = score.detach().numpy()[0][0]
+
+                            if ((h,r,t) in all_triples):
+                                sum_pos += 1/2 + ((score/max_score)/2)
+                                counter_pos += 1
+                            else:
+                                sum_neg += 1/2 + ((score/max_score)/2)
+                                counter_neg += 1
+        reliability_score.append( (sum_pos/counter_pos) / (1-(sum_neg/counter_neg)) )
+        
+    return reliability_score
+
+def reliability_local_normalization_as_Difference_MaxMin(all_triples, emb_train_triples, model, entity2embedding, relation2embedding, subgraphs):
+    '''
+    Getting the reliability sum as currently defined
+    '''
+    reliability_score = []
+    max_pos = []
+    min_pos = []
+    max_neg = []
+    min_neg = []
+
+    for subgraph in subgraphs:
+        max_score_pos = 0
+        min_score_pos = 0
+        max_score_neg = 0
+        min_score_neg = 0
+        flag = True
+
+        for h in range(emb_train_triples.num_entities):
+            if emb_train_triples.entity_id_to_label[h] in subgraph:
+                for t in range(emb_train_triples.num_entities):
+                    if emb_train_triples.entity_id_to_label[t] in subgraph:
+                        for r in range(emb_train_triples.num_relations):
+                            ten = torch.tensor([[h,r,t]])
+                            score = model.score_hrt(ten)
+                            score = score.detach().numpy()[0][0]
+                            if flag:
+                                max_score_pos = score
+                                min_score_pos = score
+                                max_score_neg = score
+                                min_score_neg = score
+                                flag = False
+                            
+                            if ((h,r,t) in all_triples):
+                                if score > max_score_pos:
+                                    max_score_pos = score
+                                if score < min_score_pos:
+                                    min_score_pos = score
+                            else:
+                                if score > max_score_neg:
+                                    max_score_neg = score
+                                if score < min_score_neg:
+                                    min_score_neg = score
+
+        
+        delta=max(max_score_pos,max_score_neg)-min(min_score_pos,min_score_pos)
+        rel = ((min_score_pos - max_score_neg)-min(min_score_pos,min_score_pos)) / delta
+        reliability_score.append(rel)
+        max_pos.append(max_score_pos)
+        min_pos.append(min_score_pos)
+        max_neg.append(max_score_neg)
+        min_neg.append(min_score_neg)
+
+        
+    return reliability_score, max_pos, min_pos, max_neg, min_neg
+
 #############################################################
 
 # OLD not used reliability scores!!!

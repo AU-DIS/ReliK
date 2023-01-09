@@ -286,6 +286,63 @@ if __name__ == "__main__":
             writer.writerow(data)
         c.close()
 
+    if sett.DO_RATIO:
+        isFile = os.path.isfile(f"approach/trainedEmbeddings/{sett.SAVENAME}/subgraphs_{sett.SIZE_OF_SUBGRAPHS}.csv")
+        if sett.LOAD_SUBGRAPHS and isFile:
+            subgraphs = dh.loadSubGraphs(f"approach/trainedEmbeddings/{sett.SAVENAME}")
+            print(f'loaded Subgraphs')
+            if len(subgraphs) < sett.AMOUNT_OF_SUBGRAPHS:
+                subgraphs_new = dh.createSubGraphs(all_triples, entity_to_id_map, relation_to_id_map, size_of_graphs=sett.SIZE_OF_SUBGRAPHS, number_of_graphs=(sett.AMOUNT_OF_SUBGRAPHS-len(subgraphs)), restart=sett.RESET_PROB)
+                dh.storeSubGraphs(f"approach/trainedEmbeddings/{sett.SAVENAME}",subgraphs_new)
+                subgraphs = subgraphs + subgraphs_new
+                print(f'created Subgraphs')
+            if len(subgraphs) > sett.AMOUNT_OF_SUBGRAPHS:
+                subgraphs = random.sample(subgraphs, sett.AMOUNT_OF_SUBGRAPHS)
+        else:
+            subgraphs = dh.createSubGraphs(all_triples, entity_to_id_map, relation_to_id_map, size_of_graphs=sett.SIZE_OF_SUBGRAPHS, number_of_graphs=sett.AMOUNT_OF_SUBGRAPHS, restart=sett.RESET_PROB)
+            dh.storeSubGraphs(f"approach/trainedEmbeddings/{sett.SAVENAME}",subgraphs)
+            print(f'created Subgraphs')
+        if sett.EMBEDDING_TYPE == 'DistMult':
+            local_reliability_score = rel.reliability_DistMult_local_normalization_Ratio(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+        else:
+            local_reliability_score = rel.reliability_local_normalization_Ratio(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+        c = open(f'{path}/{sett.NAME_OF_RUN}_ratio.csv', "w")
+        writer = csv.writer(c)
+        data = ['subgraph', 'local_reliability_score', max_score, min_score]
+        writer.writerow(data)
+        for i in range(len(local_reliability_score)):
+            data = [i, local_reliability_score[i]]
+            writer.writerow(data)
+        c.close()
+
+    if sett.DO_MIN_MAX:
+        isFile = os.path.isfile(f"approach/trainedEmbeddings/{sett.SAVENAME}/subgraphs_{sett.SIZE_OF_SUBGRAPHS}.csv")
+        if sett.LOAD_SUBGRAPHS and isFile:
+            subgraphs = dh.loadSubGraphs(f"approach/trainedEmbeddings/{sett.SAVENAME}")
+            print(f'loaded Subgraphs')
+            if len(subgraphs) < sett.AMOUNT_OF_SUBGRAPHS:
+                subgraphs_new = dh.createSubGraphs(all_triples, entity_to_id_map, relation_to_id_map, size_of_graphs=sett.SIZE_OF_SUBGRAPHS, number_of_graphs=(sett.AMOUNT_OF_SUBGRAPHS-len(subgraphs)), restart=sett.RESET_PROB)
+                dh.storeSubGraphs(f"approach/trainedEmbeddings/{sett.SAVENAME}",subgraphs_new)
+                subgraphs = subgraphs + subgraphs_new
+                print(f'created Subgraphs')
+            if len(subgraphs) > sett.AMOUNT_OF_SUBGRAPHS:
+                subgraphs = random.sample(subgraphs, sett.AMOUNT_OF_SUBGRAPHS)
+        else:
+            subgraphs = dh.createSubGraphs(all_triples, entity_to_id_map, relation_to_id_map, size_of_graphs=sett.SIZE_OF_SUBGRAPHS, number_of_graphs=sett.AMOUNT_OF_SUBGRAPHS, restart=sett.RESET_PROB)
+            dh.storeSubGraphs(f"approach/trainedEmbeddings/{sett.SAVENAME}",subgraphs)
+            print(f'created Subgraphs')
+        local_reliability_score, max_pos, min_pos, max_neg, min_neg = rel.reliability_local_normalization_as_Difference_MaxMin(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+        c = open(f'{path}/{sett.NAME_OF_RUN}_maxmin.csv', "w")
+        writer = csv.writer(c)
+        data = ['subgraph', 'local_reliability_score', 'max_pos', 'min_pos', 'max_neg', 'min_neg']
+        writer.writerow(data)
+        for i in range(len(local_reliability_score)):
+            data = [i, local_reliability_score[i], max_pos[i], min_pos[i], max_neg[i], min_neg[i]]
+            writer.writerow(data)
+        c.close()
+        
+
+
     if sett.DODIS:
         # data and scores between positive, negative and somewhat negatives triples
         # to calculate distribution
