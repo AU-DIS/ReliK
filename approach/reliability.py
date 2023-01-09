@@ -242,7 +242,7 @@ def reliability_local_normalization_as_Difference_in_Average(all_triples, emb_tr
         
     return reliability_score, max_score, min_score
 
-def reliability_local_normalization_Ratio(all_triples, emb_train_triples, model, entity2embedding, relation2embedding, subgraphs, norm):
+def reliability_local_normalization_Ratio(all_triples, emb_train_triples, model, entity2embedding, relation2embedding, subgraphs):
     '''
     Getting the reliability sum as currently defined
     '''
