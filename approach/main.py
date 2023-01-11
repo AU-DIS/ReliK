@@ -308,7 +308,7 @@ if __name__ == "__main__":
             local_reliability_score = rel.reliability_local_normalization_Ratio(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
         c = open(f'{path}/{sett.NAME_OF_RUN}_ratio.csv', "w")
         writer = csv.writer(c)
-        data = ['subgraph', 'local_reliability_score', max_score, min_score]
+        data = ['subgraph', 'local_reliability_score']
         writer.writerow(data)
         for i in range(len(local_reliability_score)):
             data = [i, local_reliability_score[i]]
