@@ -411,6 +411,8 @@ def reliability_transformation(all_triples, emb_train_triples, model, entity2emb
         avg_neg = 0
         avg_pos = 0
 
+        flag = True
+
         for h in range(emb_train_triples.num_entities):
             if emb_train_triples.entity_id_to_label[h] in subgraph:
                 for t in range(emb_train_triples.num_entities):
