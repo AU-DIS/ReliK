@@ -388,8 +388,14 @@ def reliability_local_normalization_as_Difference_MaxMin(all_triples, emb_train_
     return reliability_score, max_pos, min_pos, max_neg, min_neg
 
 def reliability_transformation(all_triples, emb_train_triples, model, entity2embedding, relation2embedding, subgraphs):
-    reliability_score_orignial, reliability_score_average, reliability_score_ratio, reliability_score_maxmin = []
-    max_pos, min_pos, max_neg, min_neg = []
+    reliability_score_orignial = []
+    reliability_score_average = []
+    reliability_score_ratio = []
+    reliability_score_maxmin = []
+    max_pos = []
+    min_pos = []
+    max_neg = []
+    min_neg = []
     for subgraph in subgraphs:
         max_score_pos = 0
         min_score_pos = 0
