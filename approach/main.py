@@ -357,8 +357,8 @@ if __name__ == "__main__":
             subgraphs = dh.createSubGraphs(all_triples, entity_to_id_map, relation_to_id_map, size_of_graphs=sett.SIZE_OF_SUBGRAPHS, number_of_graphs=sett.AMOUNT_OF_SUBGRAPHS, restart=sett.RESET_PROB)
             dh.storeSubGraphs(f"approach/trainedEmbeddings/{sett.SAVENAME}",subgraphs)
             print(f'created Subgraphs')
-        reliability_score_orignial, reliability_score_average, reliability_score_ratio, reliability_score_maxmin, max_pos, min_pos, max_neg, min_neg = rel.reliability_transformation(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
-        c = open(f'{path}/{sett.NAME_OF_RUN}_transform_{sett.GAMMA}.csv', "w")
+        reliability_score_orignial, reliability_score_average, reliability_score_ratio, reliability_score_maxmin, max_pos, min_pos, max_neg, min_neg = rel.reliability_transformation_stretch(all_triples_set, emb_train_triples, emb_model, entity2embedding, relation2embedding, subgraphs)
+        c = open(f'{path}/{sett.NAME_OF_RUN}_transform_stretch_{sett.GAMMA}.csv', "w")
         writer = csv.writer(c)
         data = ['subgraph', 'reliability_score_orignial', 'reliability_score_average', 'reliability_score_ratio', 'reliability_score_maxmin', 'max_pos', 'min_pos', 'max_neg', 'min_neg']
         writer.writerow(data)
