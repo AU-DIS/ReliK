@@ -25,6 +25,18 @@ def retrieveOrTrainEmbedding():
         emb_train_triples = TriplesFactory(all_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
         LP_triples = test_triples.mapped_triples
         LP_triples_pos = LP_triples.tolist()
+    elif sett.KFOLD_RUN:
+        isExist = os.path.exists(f"approach/KFold/{sett.DATASETNAME}_{sett.N_SPLITS}_fold")
+        full_dataset = torch.cat((all_triples, test_triples.mapped_triples, validation_triples.mapped_triples))
+        if not isExist:
+            dh.generateKFoldSplit(full_dataset, random_seed=None, n_split=sett.N_SPLITS)
+        full_dataset = torch.cat((all_triples, test_triples.mapped_triples, validation_triples.mapped_triples))
+        emb_triples_id, LP_triples_id = dh.loadKFoldSplit(0, n_split=sett.N_SPLITS)
+        emb_triples = full_dataset[emb_triples_id]
+        LP_triples = full_dataset[LP_triples_id]
+        emb_train_triples = TriplesFactory(emb_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
+        emb_test_triples = TriplesFactory(LP_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
+        LP_triples_pos = LP_triples.tolist()
     else:
         emb_triples, LP_triples = train_test_split(all_triples, test_size=sett.LP_EMB_SPLIT)
         if sett.MAKE_TRAINING_SMALLER:
@@ -43,14 +55,21 @@ def retrieveOrTrainEmbedding():
 
     # Train and create embedding model
     
-    isFile = os.path.isfile(f"approach/trainedEmbeddings/{sett.SAVENAME}/trained_model.pkl")
+    
+    if sett.KFOLD_RUN:
+        save = f"KFold/{sett.EMBEDDING_TYPE}_{sett.DATASETNAME}_{sett.N_SPLITS}_fold/{sett.DATASETNAME}_{sett.ITH_FOLD}th"
+    else:
+        save = sett.SAVENAME
+    isFile = os.path.isfile(f"approach/trainedEmbeddings/{save}/trained_model.pkl")
     if sett.LOAD_MODEL and isFile:
-        emb_model = emb.loadModel(savename=sett.SAVENAME)
+        emb_model = emb.loadModel(savename=save)
     else:
         if sett.OUT_OF_BOX:
             emb_model, emb_triples_used = emb.trainEmbeddingOutOfBox(emb_triples, test_triples, validation_triples, random_seed=42, saveModel=sett.STORE_MODEL, savename = sett.SAVENAME, embedd = sett.EMBEDDING_TYPE)
         elif sett.MORE_TRAIN:
             emb_model, emb_triples_used = emb.trainEmbeddingMore(emb_train_triples, test_triples, validation_triples, random_seed=42, saveModel=sett.STORE_MODEL, savename = sett.SAVENAME, embedd = sett.EMBEDDING_TYPE, dimension = sett.DIMENSIONS, epoch_nmb = sett.EPOCH_NMB)
+        elif sett.KFOLD_RUN:
+            emb_model, emb_triples_used = emb.trainEmbedding(emb_train_triples, emb_test_triples, random_seed=42, saveModel=sett.STORE_MODEL, savename = save, embedd = sett.EMBEDDING_TYPE, dimension = sett.DIMENSIONS, epoch_nmb = sett.EPOCH_NMB)
         else:
             emb_model, emb_triples_used = emb.trainEmbedding(emb_train_triples, emb_test_triples, random_seed=42, saveModel=sett.STORE_MODEL, savename = sett.SAVENAME, embedd = sett.EMBEDDING_TYPE, dimension = sett.DIMENSIONS)
     

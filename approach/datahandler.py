@@ -7,10 +7,46 @@ import ast
 import numpy as np
 import csv
 import torch
+import os
 
 import settings as sett
 
 from pykeen.triples import TriplesFactory
+from sklearn.model_selection import KFold
+
+def generateKFoldSplit(full_dataset, random_seed=None, n_split=5):
+    kf = KFold(n_splits=n_split, random_state=random_seed, shuffle=True)
+    fold_train_test_pairs = []
+    isExist = os.path.exists(f"approach/KFold/{sett.DATASETNAME}_{n_split}_fold")
+
+    if not isExist:
+        os.makedirs(f"approach/KFold/{sett.DATASETNAME}_{n_split}_fold")
+
+    for i, (train_index, test_index) in enumerate(kf.split(full_dataset)):
+        c = open(f"approach/KFold/{sett.DATASETNAME}_{n_split}_fold/{i}_th_fold.csv", "w")
+        writer = csv.writer(c)
+        writer.writerows([train_index, test_index])
+        c.close()
+        fold_train_test_pairs.append([train_index.tolist(),test_index.tolist()])
+    return fold_train_test_pairs
+
+
+def loadKFoldSplit(ith_fold, n_split=5):
+    with open(f"approach/KFold/{sett.DATASETNAME}_{n_split}_fold/{ith_fold}_th_fold.csv", "r") as f:
+        rows = csv.reader(f, delimiter=',')
+        i = 0
+        train = []
+        test = []
+        for row in rows:
+            if i==0:
+                for ele in row:
+                    train.append(int(ele))
+            else:
+                for ele in row:
+                    test.append(int(ele))
+            i += 1
+    return train, test
+    
 
 def createNegTripleHT(kg_triple_set, kg_triple, triples):
     '''
