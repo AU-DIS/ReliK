@@ -31,7 +31,7 @@ def retrieveOrTrainEmbedding():
         if not isExist:
             dh.generateKFoldSplit(full_dataset, random_seed=None, n_split=sett.N_SPLITS)
         full_dataset = torch.cat((all_triples, test_triples.mapped_triples, validation_triples.mapped_triples))
-        emb_triples_id, LP_triples_id = dh.loadKFoldSplit(0, n_split=sett.N_SPLITS)
+        emb_triples_id, LP_triples_id = dh.loadKFoldSplit(sett.ITH_FOLD, n_split=sett.N_SPLITS)
         emb_triples = full_dataset[emb_triples_id]
         LP_triples = full_dataset[LP_triples_id]
         emb_train_triples = TriplesFactory(emb_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
