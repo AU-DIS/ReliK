@@ -34,8 +34,8 @@ def getKFoldEmbeddings():
         emb_test.append(emb_test_triples)
         LP_triples_pos.append(LP_triples.tolist())
 
-        #neg_triples = dh.loadTriples(f"approach/KFold/{sett.DATASETNAME}_{sett.N_SPLITS}_fold/{i}th_neg")
-        #LP_triples_neg.append(neg_triples)
+        neg_triples = dh.loadTriples(f"approach/KFold/{sett.DATASETNAME}_{sett.N_SPLITS}_fold/{i}th_neg")
+        LP_triples_neg.append(neg_triples)
     
     if sett.EMBEDDING_TYPE == 'TransE':
         entity2embedding, relation2embedding = emb.createEmbeddingMaps_TransE(models[0], emb_train_triples)
@@ -268,8 +268,8 @@ def run_eval():
             writer.writerow(data)
         c.close()
     
-KFoldNegGen()
-#run_eval()
+#KFoldNegGen()
+run_eval()
 
 
 
