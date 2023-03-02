@@ -338,14 +338,28 @@ def run_eval():
                         sums_deg[i] += ( (overlapHead(all_triples_set, HeadModelRank[i][h], h, inDegree[h])/inDegree[h]) + (overlapTail(all_triples_set, TailModelRank[i][h], h, outDegree[h])/outDegree[h]) )/2
         
         for i in range(sett.N_SPLITS):
-            model_deg_rank_score[i].append(sums_deg_rank[i]/counter)
+            if counter == 0:
+                model_deg_rank_score[i].append(-100)
+                model_deg_rank_score_log[i].append(-100)
+            else:
+                model_deg_rank_score[i].append(sums_deg_rank[i]/counter)
+                model_deg_rank_score_log[i].append(sums_deg_rank_log[i]/counter)
             
-            model_deg_rank_score_log[i].append(sums_deg_rank_log[i]/counter)
-            model_deg_score[i].append(sums_deg[i]/counterEnt)
-
-            model_siblings_degree_score[i].append(sums_siblings_degree[i]/counterSib)
-            model_siblings_score[i].append(sums_siblings[i]/counterSib)
-            model_siblings_log_score[i].append(sums_siblings_log[i]/counterSib)
+            if counterEnt == 0:
+                model_deg_score[i].append(-100)
+            else:
+                model_deg_score[i].append(sums_deg[i]/counterEnt)
+            
+            
+            if counterSib == 0:
+                model_siblings_degree_score[i].append(-100)
+                model_siblings_score[i].append(-100)
+                model_siblings_log_score[i].append(-100)
+            else:
+                model_siblings_degree_score[i].append(sums_siblings_degree[i]/counterSib)
+                model_siblings_score[i].append(sums_siblings[i]/counterSib)
+                model_siblings_log_score[i].append(sums_siblings_log[i]/counterSib)
+            
         
         counter_of_test_tp = []
         for i in range(sett.N_SPLITS):
