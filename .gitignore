@@ -8,6 +8,7 @@ test.py
 trainedEmbeddings
 settings.py
 KFold
+approach_testing
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

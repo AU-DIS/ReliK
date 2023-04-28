@@ -9,14 +9,16 @@ from pykeen.models import PairRE
 from pykeen.models import SimplE
 from pykeen.pipeline import pipeline
 import timeit
+from typing import cast
 
-def getDataFromPykeen(datasetname='Nations'):
+def getDataFromPykeen(datasetname: str='Nations') -> [object, set[tuple[int,int,int]]]:
     '''
     Using datasets from the pykeen library, and preparing data for our implementaton
     '''
     if datasetname == 'Nations':
         dataset = dat.Nations()
     elif datasetname == 'Countries':
+        print('HELLO')
         dataset = dat.Countries()
     elif datasetname == 'Kinships':
         dataset = dat.Kinships()
@@ -43,8 +45,12 @@ def getDataFromPykeen(datasetname='Nations'):
     relation_to_id_map = dataset.relation_to_id
     #all_triples_tensor = torch.cat((dataset.training.mapped_triples,dataset.validation.mapped_triples,dataset.testing.mapped_triples))
     all_triples_tensor = dataset.training.mapped_triples
-    all_triples_set = set()
+    all_triples_set = set[tuple[int,int,int]]()
     for tup in all_triples_tensor.tolist():
+        all_triples_set.add((tup[0],tup[1],tup[2]))
+    for tup in dataset.validation.mapped_triples.tolist():
+        all_triples_set.add((tup[0],tup[1],tup[2]))
+    for tup in dataset.testing.mapped_triples.tolist():
         all_triples_set.add((tup[0],tup[1],tup[2]))
     validation_triples = dataset.validation
     test_triples = dataset.testing

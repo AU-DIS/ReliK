@@ -119,7 +119,7 @@ if __name__ == "__main__":
     emb_model, all_triples, all_triples_set, LP_triples_pos, emb_train_triples, entity2embedding, relation2embedding, entity_to_id_map, relation_to_id_map = retrieveOrTrainEmbedding()
     end_time_emb_training = timeit.default_timer()
     print(f'finished Embedding')
-
+    quit()
     # Get negative triples
     start_time_create_neg_samples = timeit.default_timer()
     isFile = os.path.isfile(f"approach/trainedEmbeddings/{sett.SAVENAME}/neg_triples.csv")
@@ -385,9 +385,6 @@ if __name__ == "__main__":
             data = [i, reliability_score_orignial[i], reliability_score_average[i], reliability_score_ratio[i], reliability_score_maxmin[i], max_pos[i], min_pos[i], max_neg[i], min_neg[i]]
             writer.writerow(data)
         c.close()
-
-        
-
 
     if sett.DODIS:
         # data and scores between positive, negative and somewhat negatives triples
