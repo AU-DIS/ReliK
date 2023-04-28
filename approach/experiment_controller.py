@@ -76,7 +76,7 @@ def grabAllKFold(datasetname: str, n_split: int):
     isExist = os.path.exists(f"approach/KFold/{datasetname}_{n_split}_fold")
     full_dataset = torch.cat((all_triples, test_triples.mapped_triples, validation_triples.mapped_triples))
     if not isExist:
-        dh.generateKFoldSplit(full_dataset, random_seed=None, n_split=nmb_KFold)
+        dh.generateKFoldSplit(full_dataset, datasetname, random_seed=None, n_split=nmb_KFold)
     full_dataset = torch.cat((all_triples, test_triples.mapped_triples, validation_triples.mapped_triples))
     full_graph = TriplesFactory(full_dataset,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
 

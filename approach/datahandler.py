@@ -124,16 +124,16 @@ def overlapTail(all_triples_set, ranking, tail, degree):
     return count
 
 
-def generateKFoldSplit(full_dataset, random_seed=None, n_split=5):
+def generateKFoldSplit(full_dataset, datasetname, random_seed=None, n_split=5):
     kf = KFold(n_splits=n_split, random_state=random_seed, shuffle=True)
     fold_train_test_pairs = []
-    isExist = os.path.exists(f"approach/KFold/{sett.DATASETNAME}_{n_split}_fold")
+    isExist = os.path.exists(f"approach/KFold/{datasetname}_{n_split}_fold")
 
     if not isExist:
-        os.makedirs(f"approach/KFold/{sett.DATASETNAME}_{n_split}_fold")
+        os.makedirs(f"approach/KFold/{datasetname}_{n_split}_fold")
 
     for i, (train_index, test_index) in enumerate(kf.split(full_dataset)):
-        c = open(f"approach/KFold/{sett.DATASETNAME}_{n_split}_fold/{i}_th_fold.csv", "w")
+        c = open(f"approach/KFold/{datasetname}_{n_split}_fold/{i}_th_fold.csv", "w")
         writer = csv.writer(c)
         writer.writerows([train_index, test_index])
         c.close()
