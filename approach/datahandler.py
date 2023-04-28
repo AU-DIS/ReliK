@@ -141,8 +141,8 @@ def generateKFoldSplit(full_dataset, random_seed=None, n_split=5):
     return fold_train_test_pairs
 
 
-def loadKFoldSplit(ith_fold, n_split=5):
-    with open(f"approach/KFold/{sett.DATASETNAME}_{n_split}_fold/{ith_fold}_th_fold.csv", "r") as f:
+def loadKFoldSplit(ith_fold, datasetname, n_split=5):
+    with open(f"approach/KFold/{datasetname}_{n_split}_fold/{ith_fold}_th_fold.csv", "r") as f:
         rows = csv.reader(f, delimiter=',')
         i = 0
         train = []
@@ -595,7 +595,7 @@ def getTriangle(u,v,M):
     return entities, list(labels), list(between_labels), count, existing_triples
 
 def storeTriples(path, triples):
-    with open(f"{path}.csv", "w") as f:
+    with open(f"{path}.csv", "a+") as f:
         wr = csv.writer(f)
         wr.writerows(triples)
 

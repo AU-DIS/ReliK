@@ -84,7 +84,7 @@ def grabAllKFold(datasetname: str, n_split: int):
     emb_test_triples = []
     LP_triples_pos = []
     for i in range(n_split):
-        emb_triples_id, LP_triples_id = dh.loadKFoldSplit(i, n_split=nmb_KFold)
+        emb_triples_id, LP_triples_id = dh.loadKFoldSplit(i, datasetname,n_split=nmb_KFold)
         emb_triples = full_dataset[emb_triples_id]
         LP_triples = full_dataset[LP_triples_id]
         emb_train_triples.append(TriplesFactory(emb_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map))
