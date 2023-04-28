@@ -463,7 +463,7 @@ if __name__ == "__main__":
     if 'siblings' in task_list:
         DoGlobalSiblingScore(args.embedding, args.dataset_name, nmb_KFold, size_subgraphs, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph)
     if 'prediction' in task_list:
-        prediction(args.embedding, args.dataset_name, args.size_subgraph, emb_train_triples, all_triples_set, nmb_KFold):
+        prediction(args.embedding, args.dataset_name, args.size_subgraph, emb_train_triples, all_triples_set, nmb_KFold)
     if 'triple' in task_list:
         classifierExp(args.embedding, args.dataset_name, args.size_subgraph, LP_triples_pos,  LP_triples_neg, entity_to_id_map, relation_to_id_map, emb_train_triples, nmb_KFold)
     if 'densest' in task_list:
