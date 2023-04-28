@@ -595,7 +595,7 @@ def getTriangle(u,v,M):
     return entities, list(labels), list(between_labels), count, existing_triples
 
 def storeTriples(path, triples):
-    with open(f"{path}.csv", "a+") as f:
+    with open(f"{path}.csv", "w") as f:
         wr = csv.writer(f)
         wr.writerows(triples)
 
