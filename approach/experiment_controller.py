@@ -95,14 +95,13 @@ def grabAllKFold(datasetname: str, n_split: int):
 
 def getOrTrainModels(embedding: str, dataset_name: str, n_split: int, emb_train_triples, emb_test_triples):
     models = []
-    isFile = os.path.isfile(f"approach/trainedEmbeddings/{dataset_name}_{embedding}_{n_split}_fold/{dataset_name}_0th/trained_model.pkl")
-    if not isFile:
-        for i in range(n_split):
+    for i in range(n_split):
+        isFile = os.path.isfile(f"approach/trainedEmbeddings/{dataset_name}_{embedding}_{n_split}_fold/{dataset_name}_{i}th/trained_model.pkl")
+        if not isFile:
             save = f"{dataset_name}_{embedding}_{n_split}_fold/{dataset_name}_{i}th"
             emb_model, emb_triples_used = emb.trainEmbedding(emb_train_triples[i], emb_test_triples[i], random_seed=42, saveModel=True, savename = save, embedd = embedding, dimension = 50, epoch_nmb = 50)
             models.append(emb_model)
-    else:
-        for i in range(n_split):
+        else:
             save = f"{dataset_name}_{embedding}_{n_split}_fold/{dataset_name}_{i}th"
             models.append(emb.loadModel(save))
 
