@@ -9,6 +9,9 @@ import embedding as emb
 import datahandler as dh
 import classifier as cla
 
+from pykeen.models import TransE
+from pykeen.pipeline import pipeline
+
 from pykeen.triples import TriplesFactory
 
 def makeTCPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples):
@@ -418,6 +421,9 @@ def yago2():
     emb_triples_id, LP_triples_id = dh.loadKFoldSplit(0, 'Yago2',n_split=nmb_KFold)
     emb_triples = ten[emb_triples_id]
     LP_triples = ten[LP_triples_id]
+    if torch.cuda.is_available():
+        emb_triples = emb_triples.cuda(0)
+        LP_triples = LP_triples.cuda(0)
     emb_train_triples = TriplesFactory(emb_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
     emb_test_triples = TriplesFactory(LP_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
 
