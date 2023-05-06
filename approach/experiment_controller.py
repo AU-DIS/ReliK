@@ -403,7 +403,7 @@ def prediction(embedding, datasetname, size_subgraph, emb_train, all_triples_set
     c.close()
 
 def yago2():
-    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:22000"
+    os.environ["CUDA_VISIBLE_DEVICES"]="1"
     data=pd.read_csv('approach/yago2core_facts.clean.notypes_3.tsv',sep='\t',names=['subject', 'predicate', 'object'])
 
     entity_to_id_map = {v: k for v, k in enumerate(pd.factorize(pd.concat([data['subject'],data['object']]))[1])}
@@ -430,7 +430,7 @@ def yago2():
     emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
 
 
-    result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop='LCWA', model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50),device='cuda1')   
+    result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop='LCWA', model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50))   
 
     model = result.model
 
