@@ -14,6 +14,7 @@ from pykeen.pipeline import pipeline
 
 from pykeen.triples import TriplesFactory
 from pykeen.triples import CoreTriplesFactory
+import gc
 
 import os
 
@@ -403,7 +404,10 @@ def prediction(embedding, datasetname, size_subgraph, emb_train, all_triples_set
     c.close()
 
 def yago2():
-    os.environ["CUDA_VISIBLE_DEVICES"]="1"
+    #os.environ["CUDA_VISIBLE_DEVICES"]="1"
+    gc.collect()
+
+    torch.cuda.empty_cache()
     data=pd.read_csv('approach/yago2core_facts.clean.notypes_3.tsv',sep='\t',names=['subject', 'predicate', 'object'])
 
     entity_to_id_map = {v: k for v, k in enumerate(pd.factorize(pd.concat([data['subject'],data['object']]))[1])}
