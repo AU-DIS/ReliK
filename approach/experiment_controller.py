@@ -396,7 +396,37 @@ def prediction(embedding, datasetname, size_subgraph, emb_train, all_triples_set
         writer.writerow(data)
     c.close()
 
-        
+def yago2():
+    data=pd.read_csv('approach/yago2core_facts.clean.notypes_3.tsv',sep='\t',names=['subject', 'predicate', 'object'])
+
+    entity_to_id_map = {v: k for v, k in enumerate(pd.factorize(pd.concat([data['subject'],data['object']]))[1])}
+    entity_to_id_map2 = {k: v for v, k in enumerate(pd.factorize(pd.concat([data['subject'],data['object']]))[1])}
+    relation_to_id_map = {v: k for v, k in enumerate(pd.factorize(data['predicate'])[1])}
+    relation_to_id_map2 = {k: v for v, k in enumerate(pd.factorize(data['predicate'])[1])}
+    print(len(entity_to_id_map))
+    print(data)
+    data['subject'] = data['subject'].map(entity_to_id_map2)
+    data['object'] = data['object'].map(entity_to_id_map2)  
+    data['predicate'] = data['predicate'].map(relation_to_id_map2)  
+    #data.replace({'subject': entity_to_id_map})
+    print(data)
+    ten = torch.tensor(data.values)
+
+    full_yago2 = TriplesFactory(ten, entity_to_id=entity_to_id_map, relation_to_id=relation_to_id_map)
+    dh.generateKFoldSplit(ten, 'Yago2', random_seed=None, n_split=nmb_KFold)
+
+    emb_triples_id, LP_triples_id = dh.loadKFoldSplit(0, 'Yago2',n_split=nmb_KFold)
+    emb_triples = full_yago2[emb_triples_id]
+    LP_triples = full_yago2[LP_triples_id]
+    emb_train_triples.append(TriplesFactory(emb_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map))
+    emb_test_triples.append(TriplesFactory(LP_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map))
+
+
+    result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop='LCWA', model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50))   
+
+    model = result.model
+
+    result.save_to_directory(f"approach/trainedEmbeddings/yago2")     
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -410,6 +440,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     nmb_KFold: int = 5
+
+    if args.embedding == 'Yago':
+        yago2()
+        quit()
 
     # Default cases in which return message to user, that some arguments are needed
     if not args.heuristic and not args.setup and not args.size_subgraphs and not args.tasks and not args.dataset_name and not args.embedding:
