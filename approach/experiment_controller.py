@@ -13,6 +13,7 @@ from pykeen.models import TransE
 from pykeen.pipeline import pipeline
 
 from pykeen.triples import TriplesFactory
+from pykeen.triples import CoreTriplesFactory
 
 def makeTCPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples):
     X_train, X_test, y_train, y_test = cla.prepareTrainTestData(LP_triples_pos, LP_triples_neg, emb_train_triples)
@@ -424,8 +425,8 @@ def yago2():
     if torch.cuda.is_available():
         emb_triples = emb_triples.cuda(0)
         LP_triples = LP_triples.cuda(0)
-    emb_train_triples = TriplesFactory(emb_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
-    emb_test_triples = TriplesFactory(LP_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
+    emb_train_triples = CoreTriplesFactory(emb_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
+    emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
 
 
     result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop='LCWA', model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50))   
