@@ -15,6 +15,8 @@ from pykeen.pipeline import pipeline
 from pykeen.triples import TriplesFactory
 from pykeen.triples import CoreTriplesFactory
 
+import os
+
 def makeTCPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples):
     X_train, X_test, y_train, y_test = cla.prepareTrainTestData(LP_triples_pos, LP_triples_neg, emb_train_triples)
     clf = cla.trainClassifier(X_train, y_train, entity2embedding, relation2embedding)
@@ -401,6 +403,7 @@ def prediction(embedding, datasetname, size_subgraph, emb_train, all_triples_set
     c.close()
 
 def yago2():
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:22000"
     data=pd.read_csv('approach/yago2core_facts.clean.notypes_3.tsv',sep='\t',names=['subject', 'predicate', 'object'])
 
     entity_to_id_map = {v: k for v, k in enumerate(pd.factorize(pd.concat([data['subject'],data['object']]))[1])}
