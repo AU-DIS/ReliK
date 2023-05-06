@@ -412,12 +412,12 @@ def yago2():
     print(data)
     ten = torch.tensor(data.values)
 
-    full_yago2 = TriplesFactory(ten, entity_to_id=entity_to_id_map, relation_to_id=relation_to_id_map)
+    #full_yago2 = TriplesFactory(ten, entity_to_id=entity_to_id_map, relation_to_id=relation_to_id_map)
     dh.generateKFoldSplit(ten, 'Yago2', random_seed=None, n_split=nmb_KFold)
 
     emb_triples_id, LP_triples_id = dh.loadKFoldSplit(0, 'Yago2',n_split=nmb_KFold)
-    emb_triples = full_yago2[emb_triples_id]
-    LP_triples = full_yago2[LP_triples_id]
+    emb_triples = ten[emb_triples_id]
+    LP_triples = ten[LP_triples_id]
     emb_train_triples.append(TriplesFactory(emb_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map))
     emb_test_triples.append(TriplesFactory(LP_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map))
 
