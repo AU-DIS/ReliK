@@ -449,7 +449,7 @@ def yago2():
         dataset=h,
         model='TransE',
         model_kwargs=dict(embedding_dim=50),
-        batch_size=128
+        batch_size=32
     )
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
     trainer = pytorch_lightning.Trainer(
