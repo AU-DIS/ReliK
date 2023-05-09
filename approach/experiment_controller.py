@@ -429,23 +429,21 @@ def yago2():
     dh.generateKFoldSplit(ten, 'Yago2', random_seed=None, n_split=nmb_KFold)
 
     
-    alldata = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
-    dset = alldata.create_lcwa_instances()
+    #alldata = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
 
-    '''emb_triples_id, LP_triples_id = dh.loadKFoldSplit(0, 'Yago2',n_split=nmb_KFold)
+    emb_triples_id, LP_triples_id = dh.loadKFoldSplit(0, 'Yago2',n_split=nmb_KFold)
     emb_triples = ten[emb_triples_id]
     LP_triples = ten[LP_triples_id]
     del ten
     torch.cuda.empty_cache()
     
     emb_train_triples = CoreTriplesFactory(emb_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
-    emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))'''
+    emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
 
-
+    model_t = TransE(triples_factory=emb_train_triples)
 
     model = LCWALitModule(
-        dataset=dset,
-        model="TransE",
+        model=model_t,
         model_kwargs=dict(embedding_dim=50),
         batch_size=128,
     )
