@@ -15,6 +15,7 @@ from pykeen.pipeline import pipeline
 from pykeen.triples import TriplesFactory
 from pykeen.triples import CoreTriplesFactory
 from pykeen.contrib.lightning import LCWALitModule
+import pytorch_lightning
 import gc
 
 import os
@@ -435,6 +436,23 @@ def yago2():
     
     emb_train_triples = CoreTriplesFactory(emb_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
     emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
+
+    model = LCWALitModule(
+        dataset="fb15k237",
+        dataset_kwargs=dict(create_inverse_triples=True),
+        model="mure",
+        model_kwargs=dict(embedding_dim=128, loss="bcewithlogits"),
+        batch_size=128,
+    )
+    trainer = pytorch_lightning.Trainer(
+        accelerator="gpu",  # automatically choose accelerator
+        logger=False,  # defaults to TensorBoard; explicitly disabled here
+        precision=16,  # mixed precision training
+        min_epochs= 50,
+        max_epochs=50,
+        devices=-1
+    )
+    trainer.fit(model=model)
 
 
     result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop=LCWALitModule, model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50), evaluation_fallback= True)   
