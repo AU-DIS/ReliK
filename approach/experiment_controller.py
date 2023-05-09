@@ -441,7 +441,8 @@ def yago2():
     
     emb_train_triples = CoreTriplesFactory(emb_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
     emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))'''
-
+    del ten
+    torch.cuda.empty_cache()
     model = LCWALitModule(
         dataset=h,
         model='TransE',
