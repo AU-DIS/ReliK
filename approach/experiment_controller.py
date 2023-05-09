@@ -445,7 +445,7 @@ def yago2():
     gc.collect()
     torch.cuda.empty_cache()
     torch.cuda.memory_summary(device=None, abbreviated=False)
-    model = LCWALitModule(
+    '''model = LCWALitModule(
         dataset=h,
         model='TransE',
         model_kwargs=dict(embedding_dim=50),
@@ -467,7 +467,7 @@ def yago2():
 
     model = result.model
 
-    result.save_to_directory(f"approach/trainedEmbeddings/yago2")     
+    result.save_to_directory(f"approach/trainedEmbeddings/yago2")  '''   
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
