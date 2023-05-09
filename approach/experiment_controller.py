@@ -14,6 +14,7 @@ from pykeen.pipeline import pipeline
 
 from pykeen.triples import TriplesFactory
 from pykeen.triples import CoreTriplesFactory
+from pykeen.contrib.lightning import LCWALitModule
 import gc
 
 import os
@@ -436,7 +437,7 @@ def yago2():
     emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
 
 
-    result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop='LCWA', model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50), evaluation_fallback= True)   
+    result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop=LCWALitModule, model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50), evaluation_fallback= True)   
 
     model = result.model
 
