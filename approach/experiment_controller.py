@@ -444,7 +444,7 @@ def yago2():
     del ten
     gc.collect()
     torch.cuda.empty_cache()
-    torch.cuda.memory_summary(device=None, abbreviated=False)
+    print(torch.cuda.memory_summary(device=None, abbreviated=False))
     '''model = LCWALitModule(
         dataset=h,
         model='TransE',
