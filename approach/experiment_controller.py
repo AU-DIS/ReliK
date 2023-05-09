@@ -10,6 +10,7 @@ import datahandler as dh
 import classifier as cla
 
 from pykeen.models import TransE
+from pykeen.models import ERModel
 from pykeen.pipeline import pipeline
 
 from pykeen.triples import TriplesFactory
@@ -426,26 +427,33 @@ def yago2():
     #print(data)
     ten = torch.tensor(data.values)
 
-    '''full_yago2 = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
+    full_yago2 = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
     h = Dataset().from_tf(full_yago2, [0.8-0.0000001,0.2,0.0000001])
-    alldata = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))'''
+    #alldata = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
 
-    dh.generateKFoldSplit(ten, 'Yago2', random_seed=None, n_split=nmb_KFold)
+    '''dh.generateKFoldSplit(ten, 'Yago2', random_seed=None, n_split=nmb_KFold)
 
     emb_triples_id, LP_triples_id = dh.loadKFoldSplit(0, 'Yago2',n_split=nmb_KFold)
     emb_triples = ten[emb_triples_id]
     LP_triples = ten[LP_triples_id]
     
     emb_train_triples = CoreTriplesFactory(emb_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
-    emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
+    emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))'''
     del ten
     gc.collect()
     torch.cuda.empty_cache()
-    '''print(torch.cuda.memory_summary(device=None, abbreviated=False))
+    print(torch.cuda.memory_summary(device=None, abbreviated=False))
+    #import pykeen.datasets as dat
+    #dataset = dat.Nations()
+    trans = TransE(triples_factory=h.training, embedding_dim=50)
+    #trans = ERModel(triples_factory=dataset.training, interaction='TransE', interaction_kwargs=dict(embedding_dim=50))
+    '''print(dataset.training.mapped_triples[0:1,:])
+    print(trans.score_hrt(dataset.training.mapped_triples[0:1,:]))
+    print(trans.score_hrt(dataset.training.mapped_triples[0:1,:]))
+    print(trans.score_hrt(dataset.training.mapped_triples))'''
     model = LCWALitModule(
         dataset=h,
-        model='TransE',
-        model_kwargs=dict(embedding_dim=50),
+        model=trans,
         batch_size=32
     )
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
@@ -458,15 +466,17 @@ def yago2():
         devices=-1
     )
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
-    trainer.fit(model=model)'''
+    trainer.fit(model=model)
+
+    trans.save_state(f"approach/trainedEmbeddings/yago2.te")
 
 
 
-    result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop='LCWA', model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50, batch_size=16), evaluation_fallback= True)   
+    '''result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop='LCWA', model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50, batch_size=16), evaluation_fallback= True)   
 
     model = result.model
 
-    result.save_to_directory(f"approach/trainedEmbeddings/yago2")
+    result.save_to_directory(f"approach/trainedEmbeddings/yago2")'''
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
