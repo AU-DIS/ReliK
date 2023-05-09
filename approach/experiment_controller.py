@@ -428,7 +428,7 @@ def yago2():
 
     full_yago2 = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
     h = Dataset().from_tf(full_yago2, [0.8-0.0000001,0.2,0.0000001])
-    dh.generateKFoldSplit(ten, 'Yago2', random_seed=None, n_split=nmb_KFold)
+    '''dh.generateKFoldSplit(ten, 'Yago2', random_seed=None, n_split=nmb_KFold)
 
     
     alldata = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
@@ -438,11 +438,11 @@ def yago2():
     LP_triples = ten[LP_triples_id]
     
     emb_train_triples = CoreTriplesFactory(emb_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
-    emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
+    emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))'''
     del ten
     gc.collect()
     torch.cuda.empty_cache()
-    '''print(torch.cuda.memory_summary(device=None, abbreviated=False))
+    print(torch.cuda.memory_summary(device=None, abbreviated=False))
     model = LCWALitModule(
         dataset=h,
         model='TransE',
@@ -459,15 +459,32 @@ def yago2():
         devices=-1
     )
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
-    trainer.fit(model=model)'''
+    trainer.fit(model=model)
 
-    
+    model
 
-    result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop='LCWA', model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50, batch_size=32), evaluation_fallback= True)   
+    '''result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop='LCWA', model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50, batch_size=32), evaluation_fallback= True)   
 
-    model = result.model
+    model = result.model'''
 
-    result.save_to_directory(f"approach/trainedEmbeddings/yago2")
+    from pykeen.evaluation import RankBasedEvaluator
+    evaluator = RankBasedEvaluator()
+
+    # Get triples to test
+    mapped_triples = dataset.testing.mapped_triples
+
+    # Evaluate
+    results = evaluator.evaluate(
+        model=model,
+        mapped_triples=mapped_triples,
+        batch_size=1024,
+        additional_filter_triples=[
+            dataset.training.mapped_triples,
+            dataset.validation.mapped_triples,
+        ],
+    )
+
+    results.save_to_directory(f"approach/trainedEmbeddings/yago2")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
