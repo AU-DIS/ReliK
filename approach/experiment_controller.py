@@ -454,7 +454,7 @@ def yago2():
     model = LCWALitModule(
         dataset=h,
         model=trans,
-        batch_size=128
+        batch_size=64
     )
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
     trainer = pytorch_lightning.Trainer(
