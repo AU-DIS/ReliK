@@ -462,7 +462,7 @@ def yago2():
 
 
 
-    result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop='LCWA', model_kwargs=dict(embedding_dim=50, batch_size=32),training_kwargs=dict(num_epochs=50, batch_size=32), evaluation_fallback= True)   
+    result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop='LCWA', model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50, batch_size=16), evaluation_fallback= True)   
 
     model = result.model
 
