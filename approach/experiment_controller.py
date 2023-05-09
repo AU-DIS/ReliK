@@ -442,7 +442,9 @@ def yago2():
     emb_train_triples = CoreTriplesFactory(emb_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
     emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))'''
     del ten
+    gc.collect()
     torch.cuda.empty_cache()
+    torch.cuda.memory_summary(device=None, abbreviated=False)
     model = LCWALitModule(
         dataset=h,
         model='TransE',
@@ -459,6 +461,7 @@ def yago2():
     )
     trainer.fit(model=model)
 
+    
 
     result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop=LCWALitModule, model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50), evaluation_fallback= True)   
 
