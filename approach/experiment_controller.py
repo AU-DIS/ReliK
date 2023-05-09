@@ -464,18 +464,18 @@ def yago2():
     model = LCWALitModule(
         dataset=h,
         model=trans,
-        batch_size=16
+        batch_size=32
     )
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
-    stopper = EarlyStopping('val_loss',min_delta=1/128, patience=10)
+    #stopper = EarlyStopping('val_loss',min_delta=1/128, patience=10)
     trainer = pytorch_lightning.Trainer(
         accelerator="gpu",  # automatically choose accelerator
         logger=False,  # defaults to TensorBoard; explicitly disabled here
         precision=32,  # mixed precision training
         max_epochs=50,
         min_epochs=25,
-        devices= -1,
-        callbacks=[stopper]
+        devices= -1
+        #callbacks=[stopper]
     )
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
     trainer.fit(model=model)
