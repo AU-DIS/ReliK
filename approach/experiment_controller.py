@@ -18,6 +18,7 @@ from pykeen.triples import CoreTriplesFactory
 from pykeen.contrib.lightning import LCWALitModule
 from pykeen.datasets import Dataset
 import pytorch_lightning
+from pytorch_lightning.callbacks import EarlyStopping
 import gc
 
 import os
@@ -466,13 +467,15 @@ def yago2():
         batch_size=32
     )
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
+    stopper = EarlyStopping('val_loss',min_delta=1/128, patience=10)
     trainer = pytorch_lightning.Trainer(
         accelerator="gpu",  # automatically choose accelerator
         logger=False,  # defaults to TensorBoard; explicitly disabled here
-        precision=16,  # mixed precision training
-        min_epochs= 50,
+        precision=32,  # mixed precision training
         max_epochs=50,
-        devices= -1
+        min_epochs=25,
+        devices= -1,
+        callbacks=[stopper]
     )
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
     trainer.fit(model=model)
