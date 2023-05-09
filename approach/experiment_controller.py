@@ -448,7 +448,7 @@ def yago2():
         batch_size=128
     )
     trainer = pytorch_lightning.Trainer(
-        accelerator="gpu",  # automatically choose accelerator
+        accelerator="auto",  # automatically choose accelerator
         logger=False,  # defaults to TensorBoard; explicitly disabled here
         precision=16,  # mixed precision training
         min_epochs= 50,
