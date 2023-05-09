@@ -427,7 +427,7 @@ def yago2():
     ten = torch.tensor(data.values)
 
     full_yago2 = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
-    h = Dataset().from_tf(full_yago2, [0.8,0.2,0.0])
+    h = Dataset().from_tf(full_yago2, [0.8-0.0000001,0.2,0.0000001])
     '''dh.generateKFoldSplit(ten, 'Yago2', random_seed=None, n_split=nmb_KFold)
 
     
@@ -445,12 +445,13 @@ def yago2():
     gc.collect()
     torch.cuda.empty_cache()
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
-    '''model = LCWALitModule(
+    model = LCWALitModule(
         dataset=h,
         model='TransE',
         model_kwargs=dict(embedding_dim=50),
         batch_size=128
     )
+    print(torch.cuda.memory_summary(device=None, abbreviated=False))
     trainer = pytorch_lightning.Trainer(
         accelerator="gpu",  # automatically choose accelerator
         logger=False,  # defaults to TensorBoard; explicitly disabled here
@@ -459,6 +460,7 @@ def yago2():
         max_epochs=50,
         devices=-1
     )
+    print(torch.cuda.memory_summary(device=None, abbreviated=False))
     trainer.fit(model=model)
 
     
@@ -467,7 +469,7 @@ def yago2():
 
     model = result.model
 
-    result.save_to_directory(f"approach/trainedEmbeddings/yago2")  '''   
+    result.save_to_directory(f"approach/trainedEmbeddings/yago2")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
