@@ -464,7 +464,7 @@ def yago2():
     model = LCWALitModule(
         dataset=h,
         model=trans,
-        batch_size=32
+        batch_size=16
     )
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
     #stopper = EarlyStopping('val_loss',min_delta=1/128, patience=10)
