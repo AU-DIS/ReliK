@@ -15,6 +15,7 @@ from pykeen.pipeline import pipeline
 from pykeen.triples import TriplesFactory
 from pykeen.triples import CoreTriplesFactory
 from pykeen.contrib.lightning import LCWALitModule
+from pykeen.datasets import Dataset
 import pytorch_lightning
 import gc
 
@@ -425,8 +426,9 @@ def yago2():
     print(data)
     ten = torch.tensor(data.values)
 
-    #full_yago2 = TriplesFactory(ten, entity_to_id=entity_to_id_map, relation_to_id=relation_to_id_map)
-    dh.generateKFoldSplit(ten, 'Yago2', random_seed=None, n_split=nmb_KFold)
+    full_yago2 = TriplesFactory(ten, entity_to_id=entity_to_id_map, relation_to_id=relation_to_id_map)
+    h = Dataset().from_tf(full_yago2, [0.8,0.2,0.0])
+    '''dh.generateKFoldSplit(ten, 'Yago2', random_seed=None, n_split=nmb_KFold)
 
     
     #alldata = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
@@ -438,12 +440,11 @@ def yago2():
     torch.cuda.empty_cache()
     
     emb_train_triples = CoreTriplesFactory(emb_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
-    emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
-
-    model_t = TransE(triples_factory=emb_train_triples)
+    emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))'''
 
     model = LCWALitModule(
-        model=model_t,
+        dataset=h,
+        model=TransE(),
         model_kwargs=dict(embedding_dim=50),
         batch_size=128
     )
