@@ -428,20 +428,25 @@ def yago2():
     #full_yago2 = TriplesFactory(ten, entity_to_id=entity_to_id_map, relation_to_id=relation_to_id_map)
     dh.generateKFoldSplit(ten, 'Yago2', random_seed=None, n_split=nmb_KFold)
 
-    emb_triples_id, LP_triples_id = dh.loadKFoldSplit(0, 'Yago2',n_split=nmb_KFold)
+    
+    alldata = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
+    dset = alldata.create_lcwa_instances()
+
+    '''emb_triples_id, LP_triples_id = dh.loadKFoldSplit(0, 'Yago2',n_split=nmb_KFold)
     emb_triples = ten[emb_triples_id]
     LP_triples = ten[LP_triples_id]
     del ten
     torch.cuda.empty_cache()
     
     emb_train_triples = CoreTriplesFactory(emb_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
-    emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
+    emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))'''
+
+
 
     model = LCWALitModule(
-        dataset="fb15k237",
-        dataset_kwargs=dict(create_inverse_triples=True),
-        model="mure",
-        model_kwargs=dict(embedding_dim=128, loss="bcewithlogits"),
+        dataset=dset
+        model="TransE",
+        model_kwargs=dict(embedding_dim=50),
         batch_size=128,
     )
     trainer = pytorch_lightning.Trainer(
