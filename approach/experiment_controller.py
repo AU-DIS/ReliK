@@ -452,8 +452,7 @@ def yago2():
         logger=False,  # defaults to TensorBoard; explicitly disabled here
         precision=16,  # mixed precision training
         min_epochs= 50,
-        max_epochs=50,
-        devices=-1
+        max_epochs=50
     )
     trainer.fit(model=model)
 
