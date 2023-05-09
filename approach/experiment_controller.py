@@ -444,7 +444,7 @@ def yago2():
 
     model = LCWALitModule(
         dataset=h,
-        model=TransE(),
+        model='TransE',
         model_kwargs=dict(embedding_dim=50),
         batch_size=128
     )
