@@ -445,7 +445,7 @@ def yago2():
     model = LCWALitModule(
         model=model_t,
         model_kwargs=dict(embedding_dim=50),
-        batch_size=128,
+        batch_size=128
     )
     trainer = pytorch_lightning.Trainer(
         accelerator="gpu",  # automatically choose accelerator
