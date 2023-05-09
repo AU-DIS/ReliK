@@ -417,13 +417,13 @@ def yago2():
     entity_to_id_map2 = {k: v for v, k in enumerate(pd.factorize(pd.concat([data['subject'],data['object']]))[1])}
     relation_to_id_map = {v: k for v, k in enumerate(pd.factorize(data['predicate'])[1])}
     relation_to_id_map2 = {k: v for v, k in enumerate(pd.factorize(data['predicate'])[1])}
-    print(len(entity_to_id_map))
-    print(data)
+    #print(len(entity_to_id_map))
+    #print(data)
     data['subject'] = data['subject'].map(entity_to_id_map2)
     data['object'] = data['object'].map(entity_to_id_map2)  
     data['predicate'] = data['predicate'].map(relation_to_id_map2)  
     #data.replace({'subject': entity_to_id_map})
-    print(data)
+    #print(data)
     ten = torch.tensor(data.values)
 
     full_yago2 = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
@@ -436,8 +436,6 @@ def yago2():
     emb_triples_id, LP_triples_id = dh.loadKFoldSplit(0, 'Yago2',n_split=nmb_KFold)
     emb_triples = ten[emb_triples_id]
     LP_triples = ten[LP_triples_id]
-    del ten
-    torch.cuda.empty_cache()
     
     emb_train_triples = CoreTriplesFactory(emb_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
     emb_test_triples = CoreTriplesFactory(LP_triples,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
