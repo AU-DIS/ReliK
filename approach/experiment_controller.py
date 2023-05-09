@@ -407,6 +407,11 @@ def prediction(embedding, datasetname, size_subgraph, emb_train, all_triples_set
         writer.writerow(data)
     c.close()
 
+def storeTriplesYago(path, triples):
+    with open(f"{path}.csv", "w") as f:
+        wr = csv.writer(f)
+        wr.writerows(triples)
+
 def yago2():
     #os.environ["CUDA_VISIBLE_DEVICES"]="1"
     gc.collect()
@@ -428,8 +433,12 @@ def yago2():
     ten = torch.tensor(data.values)
 
     full_yago2 = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
-    h = Dataset().from_tf(full_yago2, [0.8-0.0000001,0.2,0.0000001])
+    h = Dataset().from_tf(full_yago2, [0.8,0.1,0.1])
     #alldata = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
+
+    storeTriplesYago(f'approach/KFold/Yago2_5_fold/training', h.training.mapped_triples.tolist())
+    storeTriplesYago(f'approach/KFold/Yago2_5_fold/testing', h.testing.mapped_triples.tolist())
+    storeTriplesYago(f'approach/KFold/Yago2_5_fold/validation', h.validation.mapped_triples.tolist())
 
     '''dh.generateKFoldSplit(ten, 'Yago2', random_seed=None, n_split=nmb_KFold)
 
@@ -463,12 +472,13 @@ def yago2():
         precision=16,  # mixed precision training
         min_epochs= 50,
         max_epochs=50,
-        devices=-1
+        devices= -1
     )
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
     trainer.fit(model=model)
 
     trans.save_state(f"approach/trainedEmbeddings/yago2.te")
+    
 
 
 
