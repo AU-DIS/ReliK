@@ -467,8 +467,7 @@ def yago2():
     print(trans.score_hrt(dataset.training.mapped_triples))'''
     model = LCWALitModule(
         dataset=h,
-        model=trans,
-        batch_size=16
+        model=trans
     )
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
     #stopper = EarlyStopping('val_loss',min_delta=1/128, patience=10)
@@ -478,7 +477,7 @@ def yago2():
         precision=32,  # mixed precision training
         max_epochs=50,
         min_epochs=25,
-        devices= -1
+        devices= 1
         #callbacks=[stopper]
     )
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
