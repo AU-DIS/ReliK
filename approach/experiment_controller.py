@@ -474,12 +474,13 @@ def yago2():
     trainer = pytorch_lightning.Trainer(
         accelerator="gpu",  # automatically choose accelerator
         logger=False,  # defaults to TensorBoard; explicitly disabled here
-        precision=32,  # mixed precision training
+        precision=16,  # mixed precision training
         max_epochs=50,
         min_epochs=25,
         devices= [1,2,3,4,6]
         #callbacks=[stopper]
     )
+    torch.cuda.empty_cache()
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
     trainer.fit(model=model)
 
