@@ -9,6 +9,7 @@ trainedEmbeddings
 settings.py
 KFold
 approach_testing
+runall.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
