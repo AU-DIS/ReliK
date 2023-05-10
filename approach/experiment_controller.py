@@ -469,7 +469,7 @@ def yago2():
         dataset=h,
         model=trans
     )
-    print(torch.cuda.memory_summary(device=None, abbreviated=False))
+    #print(torch.cuda.memory_summary(device=None, abbreviated=False))
     #stopper = EarlyStopping('val_loss',min_delta=1/128, patience=10)
     trainer = pytorch_lightning.Trainer(
         accelerator="gpu",  # automatically choose accelerator
@@ -481,7 +481,7 @@ def yago2():
         #callbacks=[stopper]
     )
     torch.cuda.empty_cache()
-    print(torch.cuda.memory_summary(device=None, abbreviated=False))
+    #print(torch.cuda.memory_summary(device=None, abbreviated=False))
     trainer.fit(model=model)
 
     trans.save_state(f"approach/trainedEmbeddings/yago2.te")
