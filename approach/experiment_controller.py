@@ -477,7 +477,7 @@ def yago2():
         precision=32,  # mixed precision training
         max_epochs=50,
         min_epochs=25,
-        devices= 1
+        devices= [1,2,3,4,6]
         #callbacks=[stopper]
     )
     print(torch.cuda.memory_summary(device=None, abbreviated=False))
