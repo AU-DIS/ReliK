@@ -51,10 +51,12 @@ def getSiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], en
 
             for i in range(n_split):
                 score = models[i].score_hrt(ten_h)
+                score = score.cpu()
                 score = score.detach().numpy()[0][0]
                 HeadModelRank[i][(rel,ent)] = score
 
                 score = models[i].score_hrt(ten_t)
+                score = score.cpu()
                 score = score.detach().numpy()[0][0]
                 TailModelRank[i][(ent,rel)] = score
 
@@ -272,6 +274,7 @@ def prediction(embedding, datasetname, size_subgraph, emb_train, all_triples_set
                             continue
                         ten = torch.tensor([[tp[0],relation,tp[2]]])
                         score = models[i].score_hrt(ten)
+                        score = score.cpu()
                         score = score.detach().numpy()[0][0]
                         tmp_scores[relation] = score
                     sl = sorted(tmp_scores.items(), key=lambda x:x[1], reverse=True)
@@ -298,6 +301,7 @@ def prediction(embedding, datasetname, size_subgraph, emb_train, all_triples_set
                             continue
                         ten = torch.tensor([[tp[0],tp[1],tail]])
                         score = models[i].score_hrt(ten)
+                        score = score.cpu()
                         score = score.detach().numpy()[0][0]
                         tmp_scores[tail] = score
 
