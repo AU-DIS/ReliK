@@ -741,7 +741,7 @@ if __name__ == "__main__":
     if args.heuristic:
         heuristic = args.heuristic
         if heuristic == 'binomial':
-            ratio = args.ratio
+            ratio = float(args.ratio)
             heuristic = binomial
         if heuristic == 'sibling':
             heuristic = getSiblingScore
