@@ -770,7 +770,7 @@ if __name__ == "__main__":
             if len(subgraphs) > n_subgraphs:
                     subgraphs = subgraphs[:n_subgraphs]
     else:
-        models = [emb.loadModel(f"approach/trainedEmbeddings/yago2")]
+        models = [emb.loadModel(f"yago2")]
 
     tstamp_sib = -1
     tstamp_pre = -1
