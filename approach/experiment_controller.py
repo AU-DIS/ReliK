@@ -4,6 +4,7 @@ import torch
 import pandas as pd
 import networkx as nx
 import csv
+import timeit
 
 import embedding as emb
 import datahandler as dh
@@ -15,11 +16,9 @@ from pykeen.pipeline import pipeline
 
 from pykeen.triples import TriplesFactory
 from pykeen.triples import CoreTriplesFactory
-from pykeen.contrib.lightning import LCWALitModule
 from pykeen.datasets import Dataset
-import pytorch_lightning
-from pytorch_lightning.callbacks import EarlyStopping
 import gc
+import random
 
 import os
 
@@ -494,6 +493,193 @@ def yago2():
 
     result.save_to_directory(f"approach/trainedEmbeddings/yago2")
 
+def getSiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, samples: float) -> float:
+    #subgraphs = dh.loadSubGraphs(f"approach/KFold/{len(models)DATASETNAME}_{len(models)}_fold")
+
+    head = entity_to_id_map[u]
+    tail = entity_to_id_map[v]
+
+    HeadModelRank: list[dict[tuple[int,int],float]] = []
+    TailModelRank: list[dict[tuple[int,int],float]] = []
+
+    for _ in range(len(models)):
+        HeadModelRank.append(dict())
+        TailModelRank.append(dict())
+
+    #for entstr in list(subgraphs[0]):
+    for ent in range(alltriples.num_entities):
+        for rel in range(alltriples.num_relations):
+            #ent = entity_to_id_map[entstr]
+            ten_h = torch.tensor([[head,rel,ent]])
+            ten_t = torch.tensor([[ent,rel,tail]])
+
+            for i in range(len(models)):
+                score = models[i].score_hrt(ten_h)
+                score = score.detach().numpy()[0][0]
+                HeadModelRank[i][(rel,ent)] = score
+
+                score = models[i].score_hrt(ten_t)
+                score = score.detach().numpy()[0][0]
+                TailModelRank[i][(ent,rel)] = score
+
+    hRankNeg = 0
+    tRankNeg = 0
+
+    between_labels: list[str] = []
+
+
+
+    for el in M.get_edge_data(u,v).items():
+        between_labels.append(el[1]['label'])
+
+    for label in between_labels:
+        relation = relation_to_id_map[label]
+        
+        for i in range(len(models)):
+            part1 = list(dict(sorted(HeadModelRank[i].items(), key=lambda item: item[1], reverse=True)).keys())
+                
+            part2 = list(dict(sorted(TailModelRank[i].items(), key=lambda item: item[1], reverse=True)).keys())
+
+            hRankNeg += dh.findingRankNegHead(part1,(relation,tail),all_triples_set,head) / len(models)
+            tRankNeg += dh.findingRankNegTail(part2,(head,relation),all_triples_set,tail) / len(models)
+
+    hRankNeg = hRankNeg/len(between_labels)
+    tRankNeg = tRankNeg/len(between_labels)
+    global LOWEST_RANK
+    if LOWEST_RANK > hRankNeg:
+        LOWEST_RANK = hRankNeg
+    if LOWEST_RANK > tRankNeg:
+        LOWEST_RANK = tRankNeg
+    return ( (1/hRankNeg) + (1/tRankNeg) ) /2
+
+def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, sample: float) -> float:
+    
+    subgraph_list, labels, existing, count, ex_triples  = dh.getkHopneighbors(u,v,M)
+    
+    allset_u = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
+    allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
+    allset = allset_v.union(allset_u)
+    allset = allset.difference(all_triples_set)
+    
+    #alllist = list(allset)
+    possible = len(allset)
+    print(f'We have {count} existing, {possible} possible, worst rank is {possible-count+1}')
+    selectedComparators = set(random.choices(list(allset), k=max( min(100,len(allset)), int((sample*len(allset))//1) )))
+
+    HeadModelRank = []
+    TailModelRank = []
+
+    ex_triples_new = set()
+    for tp in list(ex_triples):
+        ex_triples_new.add( (entity_to_id_map[tp[0]], relation_to_id_map[tp[1]], entity_to_id_map[tp[2]]) )
+    
+    getScoreList = list(selectedComparators.union(ex_triples_new))
+
+    u_comp = allset_u.intersection(selectedComparators)
+    v_comp = allset_v.intersection(selectedComparators)
+
+    for i in range(len(models)):
+        HeadModelRank.append(dict())
+        TailModelRank.append(dict())
+
+    head = entity_to_id_map[u]
+    tail = entity_to_id_map[v]
+    for tp in getScoreList:
+        h = tp[0]
+        rel = tp[1]
+        t = tp[2]
+        ten = torch.tensor([[h,rel,t]])
+        if h == head:
+            for i in range(len(models)):
+                score = models[i].score_hrt(ten)
+                score = score.detach().numpy()[0][0]
+                HeadModelRank[i][(rel,t)] = score
+        if t == tail:
+            for i in range(len(models)):
+                score = models[i].score_hrt(ten)
+                score = score.detach().numpy()[0][0]
+                TailModelRank[i][(h,rel)] = score
+    
+    hRankNeg = 0
+    tRankNeg = 0
+
+    for label in existing:
+        relation = relation_to_id_map[label]
+        
+        for i in range(len(models)):
+            part1 = list(dict(sorted(HeadModelRank[i].items(), key=lambda item: item[1], reverse=True)).keys())
+                
+            part2 = list(dict(sorted(TailModelRank[i].items(), key=lambda item: item[1], reverse=True)).keys())
+
+            
+            pos = findingRankNegHead(part1,(relation,tail),all_triples_set,head) / len(models)
+            hRankNeg += (pos / len(u_comp)) * len(allset_u)
+            neg = findingRankNegTail(part2,(head,relation),all_triples_set,tail) / len(models)
+            tRankNeg += (neg / len(v_comp)) * len(allset_v)
+
+    hRankNeg = hRankNeg/len(existing)
+    tRankNeg = tRankNeg/len(existing)
+    
+    return ( 1/hRankNeg + 1/tRankNeg )/2
+
+def densestSubgraph(datasetname, embedding, score_calculation, sample):
+    if datasetname == 'YAGO2':
+        data=pd.read_csv('approach/yago2core_facts.clean.notypes_3.tsv',sep='\t',names=['subject', 'predicate', 'object'])
+
+        entity_to_id_map = {v: k for v, k in enumerate(pd.factorize(pd.concat([data['subject'],data['object']]))[1])}
+        entity_to_id_map2 = {k: v for v, k in enumerate(pd.factorize(pd.concat([data['subject'],data['object']]))[1])}
+        relation_to_id_map = {v: k for v, k in enumerate(pd.factorize(data['predicate'])[1])}
+        relation_to_id_map2 = {k: v for v, k in enumerate(pd.factorize(data['predicate'])[1])}
+        #print(len(entity_to_id_map))
+        #print(data)
+        data['subject'] = data['subject'].map(entity_to_id_map2)
+        data['object'] = data['object'].map(entity_to_id_map2)  
+        data['predicate'] = data['predicate'].map(relation_to_id_map2)  
+        #data.replace({'subject': entity_to_id_map})
+        #print(data)
+        ten = torch.tensor(data.values)
+
+        full_graph = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
+    else:
+        all_triples, all_triples_set, entity_to_id_map, relation_to_id_map, test_triples, validation_triples = emb.getDataFromPykeen(datasetname=datasetname)
+        full_dataset = torch.cat((all_triples, test_triples.mapped_triples, validation_triples.mapped_triples))
+        full_graph = TriplesFactory(full_dataset,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
+    df = pd.DataFrame(full_graph.triples, columns=['subject', 'predicate', 'object'])
+    M = nx.MultiDiGraph()
+
+    for t in df.values:
+        M.add_edge(t[0], t[2], label = t[1])
+
+    G = nx.Graph()
+    count = 0
+    pct = 0
+    start = timeit.default_timer()
+    length: int = len(nx.DiGraph(M).edges())
+    print(f'Starting with {length}')
+    for u,v in nx.DiGraph(M).edges():
+        print(f'{u} and {v}')
+        w = score_calculation(u, v, M, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample)
+        if G.has_edge(u,v):
+            G[u][v]['weight'] += w
+        else:
+            G.add_edge(u, v, weight=w)
+            print(w)
+        count += 1
+        now = timeit.default_timer()
+        print(now-start)
+        if count % ((length // 100)+1) == 0:
+            pct += 1
+            now = timeit.default_timer()
+            print(f'Finished with {pct}% for {datasetname} in time {now-start}, took avg of {(now-start)/pct} per point')
+
+    weighted_graph: list[tuple[str,str,float]] = []
+    for u,v,data in G.edges(data=True):
+        weighted_graph.append((u,v,data['weight']))
+
+    with open(f"approach/KFold/{datasetname}_{5}_fold/{embedding}_weightedGraph_{score_calculation.__name__}_{sample}_samples.csv", "w") as f:
+        wr = csv.writer(f)
+        wr.writerows(weighted_graph)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-e','--embedding', dest='embedding', type=str, help='choose which embedding type to use')
@@ -503,6 +689,7 @@ if __name__ == "__main__":
     parser.add_argument('-n','--n_subgraphs', dest='n_subgraphs', type=int, help='choose which n of subgraphs are getting tested')
     parser.add_argument('-st','--setup', dest='setup',action='store_true' ,help='if set, just setup and train embedding, subgraphs, neg-triples')
     parser.add_argument('-heur','--heuristic', dest='heuristic', type=str, help='which heuristic should be used in the case of dense subgraph task')
+    parser.add_argument('-r','--ratio', dest='ratio', type=str, help='how much should be sampled for binomial')
     args = parser.parse_args()
 
     nmb_KFold: int = 5
@@ -544,7 +731,21 @@ if __name__ == "__main__":
     if args.n_subgraphs:
         n_subgraphs = args.n_subgraphs
     else:
-        n_subgraphs = 100
+        n_subgraphs = 500
+
+    if args.heuristic:
+        heuristic = args.heuristic
+        if heuristic == 'binomial':
+            ratio = args.ratio
+            heuristic = binomial
+        if heuristic == 'sibling':
+            heuristic = getSiblingScore
+            ratio = 0.1
+
+        
+    else:
+        heuristic = getSiblingScore
+        ratio = 0.1
 
     # collecting all information except the model from the KFold
     all_triples, all_triples_set, entity_to_id_map, relation_to_id_map, emb_train_triples, emb_test_triples, LP_triples_pos, full_graph = grabAllKFold(args.dataset_name, nmb_KFold)
@@ -558,14 +759,47 @@ if __name__ == "__main__":
     if not os.path.isfile(f"approach/KFold/{args.dataset_name}_{nmb_KFold}_fold/subgraphs_{size_subgraphs}.csv"):
         subgraphs = dh.createSubGraphs(all_triples, entity_to_id_map, relation_to_id_map, number_of_graphs=n_subgraphs, size_of_graphs=size_subgraphs)
         dh.storeSubGraphs(f"approach/KFold/{args.dataset_name}_{nmb_KFold}_fold", subgraphs)
+    else:
+        subgraphs = dh.loadSubGraphs(f"approach/KFold/{args.dataset_name}_{nmb_KFold}_fold")
+        if len(subgraphs) < n_subgraphs:
+                subgraphs_new = dh.createSubGraphs(all_triples, entity_to_id_map, relation_to_id_map, size_of_graphs=size_subgraphs, number_of_graphs=(n_subgraphs-len(subgraphs)))
+                dh.storeSubGraphs(f"approach/KFold/{args.dataset_name}_{nmb_KFold}_fold", subgraphs_new)
+                subgraphs = subgraphs + subgraphs_new
+        if len(subgraphs) > n_subgraphs:
+                subgraphs = subgraphs[:n_subgraphs]
 
+    tstamp_sib = -1
+    tstamp_pre = -1
+    tstamp_tpc = -1
+    tstamp_den = -1
     if 'siblings' in task_list:
+        start = timeit.default_timer()
         DoGlobalSiblingScore(args.embedding, args.dataset_name, nmb_KFold, size_subgraphs, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph)
+        end = timeit.default_timer()
+        tstamp_sib = end - start
     if 'prediction' in task_list:
-        prediction(args.embedding, args.dataset_name, args.size_subgraph, emb_train_triples, all_triples_set, nmb_KFold)
+        start = timeit.default_timer()
+        prediction(args.embedding, args.dataset_name, size_subgraphs, emb_train_triples, all_triples_set, nmb_KFold)
+        end = timeit.default_timer()
+        tstamp_pre = end - start
     if 'triple' in task_list:
-        classifierExp(args.embedding, args.dataset_name, args.size_subgraph, LP_triples_pos,  LP_triples_neg, entity_to_id_map, relation_to_id_map, emb_train_triples, nmb_KFold)
+        start = timeit.default_timer()
+        classifierExp(args.embedding, args.dataset_name, size_subgraphs, LP_triples_pos,  LP_triples_neg, entity_to_id_map, relation_to_id_map, emb_train_triples, nmb_KFold)
+        end = timeit.default_timer()
+        tstamp_tpc = end - start
     if 'densest' in task_list:
-        print('HELLO not done yet')
-        
+        start = timeit.default_timer()
+        densestSubgraph(args.dataset_name, args.embedding, heuristic, ratio)
+        end = timeit.default_timer()
+        tstamp_den = end - start
+
+
+    path = f"approach/scoreData/time_measures.csv"
+    c = open(f'{path}', "a+")
+    writer = csv.writer(c)
+    data = ['dataset','embedding','size subgraphs','nmb subgraphs','sib_time','prediction_time','triple_time','densest_time']
+    writer.writerow(data)
+    data = [args.dataset_name, args.embedding, size_subgraphs, n_subgraphs, tstamp_sib, tstamp_pre, tstamp_tpc, tstamp_den]
+    writer.writerow(data)
+    c.close()
 
