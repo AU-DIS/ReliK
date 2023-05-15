@@ -640,11 +640,12 @@ def densestSubgraph(datasetname, embedding, score_calculation, sample):
         ten = torch.tensor(data.values)
 
         full_graph = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
+        df = pd.DataFrame(full_graph.mapped_triples, columns=['subject', 'predicate', 'object'])
     else:
         all_triples, all_triples_set, entity_to_id_map, relation_to_id_map, test_triples, validation_triples = emb.getDataFromPykeen(datasetname=datasetname)
         full_dataset = torch.cat((all_triples, test_triples.mapped_triples, validation_triples.mapped_triples))
         full_graph = TriplesFactory(full_dataset,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
-    df = pd.DataFrame(full_graph.triples, columns=['subject', 'predicate', 'object'])
+        df = pd.DataFrame(full_graph.triples, columns=['subject', 'predicate', 'object'])
     M = nx.MultiDiGraph()
 
     for t in df.values:
