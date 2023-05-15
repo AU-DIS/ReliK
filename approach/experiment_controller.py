@@ -557,8 +557,10 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     
     subgraph_list, labels, existing, count, ex_triples  = dh.getkHopneighbors(u,v,M)
     
-    allset_u = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
-    allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
+    #allset_u = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
+    #allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
+    allset_u = set(itertools.product([u],range(alltriples.num_relations),range(alltriples.num_entities)))
+    allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[v]))
     allset = allset_v.union(allset_u)
     allset = allset.difference(all_triples_set)
     
@@ -583,8 +585,8 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
         HeadModelRank.append(dict())
         TailModelRank.append(dict())
 
-    head = entity_to_id_map[u]
-    tail = entity_to_id_map[v]
+    head = u#entity_to_id_map[u]
+    tail = v#entity_to_id_map[v]
     for tp in getScoreList:
         h = tp[0]
         rel = tp[1]
