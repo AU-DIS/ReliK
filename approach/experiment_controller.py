@@ -622,7 +622,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     
     return ( 1/hRankNeg + 1/tRankNeg )/2
 
-def densestSubgraph(datasetname, embedding, score_calculation, sample):
+def densestSubgraph(datasetname, embedding, score_calculation, sample, models):
     if datasetname == 'YAGO2':
         data=pd.read_csv('approach/yago2core_facts.clean.notypes_3.tsv',sep='\t',names=['subject', 'predicate', 'object'])
 
@@ -769,6 +769,8 @@ if __name__ == "__main__":
                     subgraphs = subgraphs + subgraphs_new
             if len(subgraphs) > n_subgraphs:
                     subgraphs = subgraphs[:n_subgraphs]
+    else:
+        models = [emb.loadModel(f"approach/trainedEmbeddings/yago2")]
 
     tstamp_sib = -1
     tstamp_pre = -1
@@ -791,7 +793,7 @@ if __name__ == "__main__":
         tstamp_tpc = end - start
     if 'densest' in task_list:
         start = timeit.default_timer()
-        densestSubgraph(args.dataset_name, args.embedding, heuristic, ratio)
+        densestSubgraph(args.dataset_name, args.embedding, heuristic, ratio, models)
         end = timeit.default_timer()
         tstamp_den = end - start
 
