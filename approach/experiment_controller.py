@@ -641,6 +641,9 @@ def densestSubgraph(datasetname, embedding, score_calculation, sample, models):
 
         full_graph = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
         df = pd.DataFrame(full_graph.mapped_triples, columns=['subject', 'predicate', 'object'])
+        all_triples_set = set[tuple[int,int,int]]()
+        for tup in full_graph.mapped_triples.tolist():
+            all_triples_set.add((tup[0],tup[1],tup[2]))
     else:
         all_triples, all_triples_set, entity_to_id_map, relation_to_id_map, test_triples, validation_triples = emb.getDataFromPykeen(datasetname=datasetname)
         full_dataset = torch.cat((all_triples, test_triples.mapped_triples, validation_triples.mapped_triples))
