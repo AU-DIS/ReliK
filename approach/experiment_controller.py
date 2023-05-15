@@ -5,6 +5,7 @@ import pandas as pd
 import networkx as nx
 import csv
 import timeit
+import itertools
 
 import embedding as emb
 import datahandler as dh
