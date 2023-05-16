@@ -418,7 +418,7 @@ def storeTriplesYago(path, triples):
         wr = csv.writer(f)
         wr.writerows(triples)
 
-def yago2():
+def Yago2():
     #os.environ["CUDA_VISIBLE_DEVICES"]="1"
     gc.collect()
 
@@ -438,8 +438,8 @@ def yago2():
     #print(data)
     ten = torch.tensor(data.values)
 
-    full_yago2 = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
-    h = Dataset().from_tf(full_yago2, [0.8,0.1,0.1])
+    full_Yago2 = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
+    h = Dataset().from_tf(full_Yago2, [0.8,0.1,0.1])
     #alldata = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
 
     storeTriplesYago(f'approach/KFold/Yago2_5_fold/training', h.training.mapped_triples.tolist())
@@ -484,7 +484,7 @@ def yago2():
     #print(torch.cuda.memory_summary(device=None, abbreviated=False))
     trainer.fit(model=model)
 
-    trans.save_state(f"approach/trainedEmbeddings/yago2.te")'''
+    trans.save_state(f"approach/trainedEmbeddings/Yago2.te")'''
     
 
 
@@ -493,7 +493,7 @@ def yago2():
 
     #model = result.model
 
-    result.save_to_directory(f"approach/trainedEmbeddings/yago2")
+    result.save_to_directory(f"approach/trainedEmbeddings/Yago2")
 
 def findingRankNegHead(orderedList, key, all_triples_set, fix):
     counter = 1
@@ -517,7 +517,7 @@ def findingRankNegTail(orderedList, key, all_triples_set, fix):
         counter += 1
     return None
 
-def findingRankNegHead_YAGO(orderedList, key, all_triples_set, fix, map, map_r):
+def findingRankNegHead_Yago(orderedList, key, all_triples_set, fix, map, map_r):
     counter = 1
     for ele in orderedList:
         if key[0] == ele[0] and key[1] == ele[1]:
@@ -528,7 +528,7 @@ def findingRankNegHead_YAGO(orderedList, key, all_triples_set, fix, map, map_r):
         counter += 1
     return None
 
-def findingRankNegTail_YAGO(orderedList, key, all_triples_set, fix, map, map_r):
+def findingRankNegTail_Yago(orderedList, key, all_triples_set, fix, map, map_r):
     counter = 1
     for ele in orderedList:
         if key[0] == ele[0] and key[1] == ele[1]:
@@ -542,7 +542,7 @@ def findingRankNegTail_YAGO(orderedList, key, all_triples_set, fix, map, map_r):
 def getSiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, samples: float, dataset: str) -> float:
     #subgraphs = dh.loadSubGraphs(f"approach/KFold/{len(models)DATASETNAME}_{len(models)}_fold")
 
-    if dataset == 'YAGO2':
+    if dataset == 'Yago2':
         head = u
         tail = v
     else:
@@ -610,7 +610,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     
     #allset_u = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
     #allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
-    if dataset == 'YAGO2':
+    if dataset == 'Yago2':
         allset_u = set(itertools.product([u],range(alltriples.num_relations),range(alltriples.num_entities)))
         allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[v]))
     else:
@@ -629,7 +629,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
 
     ex_triples_new = set()
     for tp in list(ex_triples):
-        if dataset == 'YAGO2':
+        if dataset == 'Yago2':
             ex_triples_new.add( (tp[0], tp[1], tp[2]) )
         else:
             ex_triples_new.add( (entity_to_id_map[tp[0]], relation_to_id_map[tp[1]], entity_to_id_map[tp[2]]) )
@@ -643,7 +643,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
         HeadModelRank.append(dict())
         TailModelRank.append(dict())
 
-    if dataset == 'YAGO2':
+    if dataset == 'Yago2':
         head = u
         tail = v
     else:
@@ -671,7 +671,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     tRankNeg = 0
 
     for label in existing:
-        if dataset == 'YAGO2':
+        if dataset == 'Yago2':
             relation = label
         else:
             relation = relation_to_id_map[label]
@@ -681,10 +681,10 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
                 
             part2 = list(dict(sorted(TailModelRank[i].items(), key=lambda item: item[1], reverse=True)).keys())
 
-            if dataset == 'YAGO2':
-                pos = findingRankNegHead_YAGO(part1,(relation,tail),all_triples_set,head, entity_to_id_map ,relation_to_id_map) / len(models)
+            if dataset == 'Yago2':
+                pos = findingRankNegHead_Yago(part1,(relation,tail),all_triples_set,head, entity_to_id_map ,relation_to_id_map) / len(models)
                 hRankNeg += (pos / len(u_comp)) * len(allset_u)
-                neg = findingRankNegTail_YAGO(part2,(head,relation),all_triples_set,tail, entity_to_id_map ,relation_to_id_map) / len(models)
+                neg = findingRankNegTail_Yago(part2,(head,relation),all_triples_set,tail, entity_to_id_map ,relation_to_id_map) / len(models)
                 tRankNeg += (neg / len(v_comp)) * len(allset_v)
             else:
                 pos = findingRankNegHead(part1,(relation,tail),all_triples_set,head) / len(models)
@@ -698,8 +698,8 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     return ( 1/hRankNeg + 1/tRankNeg )/2
 
 def densestSubgraph(datasetname, embedding, score_calculation, sample, models):
-    if datasetname == 'YAGO2':
-        data=pd.read_csv('approach/yago2core_facts.clean.notypes_3.tsv',sep='\t',names=['subject', 'predicate', 'object'])
+    if datasetname == 'Yago2':
+        data=pd.read_csv('approach/Yago2core_facts.clean.notypes_3.tsv',sep='\t',names=['subject', 'predicate', 'object'])
 
         entity_to_id_map = {v: k for v, k in enumerate(pd.factorize(pd.concat([data['subject'],data['object']]))[1])}
         entity_to_id_map2 = {k: v for v, k in enumerate(pd.factorize(pd.concat([data['subject'],data['object']]))[1])}
@@ -797,7 +797,7 @@ if __name__ == "__main__":
     nmb_KFold: int = 5
 
     if args.embedding == 'Yago':
-        yago2()
+        Yago2()
         quit()
 
     # Default cases in which return message to user, that some arguments are needed
@@ -844,12 +844,24 @@ if __name__ == "__main__":
             heuristic = getSiblingScore
             ratio = 0.1
 
+    if args.dataset_name == 'Countries':
+        torch.cuda.device(0)
+    if args.dataset_name == 'CodexSmall':
+        torch.cuda.device(0)
+    if args.dataset_name == 'CodexMedium':
+        torch.cuda.device(2)
+    if args.dataset_name == 'CodexLarge':
+        torch.cuda.device(3)
+    if args.dataset_name == 'FB15k237':
+        torch.cuda.device(4)
+    if args.dataset_name == 'FB15k':
+        torch.cuda.device(6)
         
     else:
         heuristic = getSiblingScore
         ratio = 0.1
 
-    if args.dataset_name != 'YAGO2':
+    if args.dataset_name != 'Yago2':
         # collecting all information except the model from the KFold
         all_triples, all_triples_set, entity_to_id_map, relation_to_id_map, emb_train_triples, emb_test_triples, LP_triples_pos, full_graph = grabAllKFold(args.dataset_name, nmb_KFold)
 
@@ -863,7 +875,7 @@ if __name__ == "__main__":
             subgraphs = dh.createSubGraphs(all_triples, entity_to_id_map, relation_to_id_map, number_of_graphs=n_subgraphs, size_of_graphs=size_subgraphs)
             dh.storeSubGraphs(f"approach/KFold/{args.dataset_name}_{nmb_KFold}_fold", subgraphs)
         else:
-            subgraphs = dh.loadSubGraphs(f"approach/KFold/{args.dataset_name}_{nmb_KFold}_fold")
+            subgraphs = dh.loadSubGraphs(f"approach/KFold/{args.dataset_name}_{nmb_KFold}_fold", size_subgraphs)
             if len(subgraphs) < n_subgraphs:
                     subgraphs_new = dh.createSubGraphs(all_triples, entity_to_id_map, relation_to_id_map, size_of_graphs=size_subgraphs, number_of_graphs=(n_subgraphs-len(subgraphs)))
                     dh.storeSubGraphs(f"approach/KFold/{args.dataset_name}_{nmb_KFold}_fold", subgraphs_new)
@@ -871,7 +883,7 @@ if __name__ == "__main__":
             if len(subgraphs) > n_subgraphs:
                     subgraphs = subgraphs[:n_subgraphs]
     else:
-        models = [emb.loadModel(f"yago2")]
+        models = [emb.loadModel(f"Yago2")]
 
     tstamp_sib = -1
     tstamp_pre = -1

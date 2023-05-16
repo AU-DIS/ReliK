@@ -271,8 +271,8 @@ def storeDenSubGraphs(path, subgraphs):
         wr = csv.writer(f)
         wr.writerows(subgraphs)
 
-def loadSubGraphs(path):
-    with open(f"{path}/subgraphs_{sett.SIZE_OF_SUBGRAPHS}.csv", "r") as f:
+def loadSubGraphs(path, sbg_size):
+    with open(f"{path}/subgraphs_{sbg_size}.csv", "r") as f:
         rows = csv.reader(f, delimiter=',')
         subgraphs = []
         for row in rows:
