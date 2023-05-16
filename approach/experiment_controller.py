@@ -588,8 +588,12 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     
     #allset_u = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
     #allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
-    allset_u = set(itertools.product([u],range(alltriples.num_relations),range(alltriples.num_entities)))
-    allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[v]))
+    if dataset == 'YAGO2':
+        allset_u = set(itertools.product([u],range(alltriples.num_relations),range(alltriples.num_entities)))
+        allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[v]))
+    else:
+        allset_u = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
+        allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
     allset = allset_v.union(allset_u)
     allset = allset.difference(all_triples_set)
     
@@ -603,7 +607,10 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
 
     ex_triples_new = set()
     for tp in list(ex_triples):
-        ex_triples_new.add( (entity_to_id_map[tp[0]], relation_to_id_map[tp[1]], entity_to_id_map[tp[2]]) )
+        if dataset == 'YAGO2':
+            ex_triples_new.add( (tp[0], tp[1], tp[2]) )
+        else:
+            ex_triples_new.add( (entity_to_id_map[tp[0]], relation_to_id_map[tp[1]], entity_to_id_map[tp[2]]) )
     
     getScoreList = list(selectedComparators.union(ex_triples_new))
 
