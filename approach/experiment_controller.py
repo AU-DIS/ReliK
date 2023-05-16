@@ -850,17 +850,17 @@ if __name__ == "__main__":
         ratio = 0.1
 
     if args.dataset_name == 'Countries':
-        torch.cuda.set_device(0)
+        torch.set_default_device('cuda:0')
     if args.dataset_name == 'CodexSmall':
-        torch.cuda.set_device(0)
+        torch.set_default_device('cuda:0')
     if args.dataset_name == 'CodexMedium':
-        torch.cuda.set_device(2)
+        torch.set_default_device('cuda:2')
     if args.dataset_name == 'CodexLarge':
-        torch.cuda.set_device(3)
+        torch.set_default_device('cuda:3')
     if args.dataset_name == 'FB15k237':
-        torch.cuda.set_device(4)
+        torch.set_default_device('cuda:4')
     if args.dataset_name == 'FB15k':
-        torch.cuda.set_device(6)
+        torch.set_default_device('cuda:6')
 
     if args.dataset_name != 'Yago2':
         # collecting all information except the model from the KFold
