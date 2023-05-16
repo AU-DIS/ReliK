@@ -653,8 +653,6 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
         h = tp[0]
         rel = tp[1]
         t = tp[2]
-        print(tp)
-
         ten = torch.tensor([[h,rel,t]])
         if h == head:
             for i in range(len(models)):

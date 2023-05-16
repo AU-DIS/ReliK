@@ -73,7 +73,7 @@ def trainEmbeddingMore(training_set, test_set, validation_set, random_seed=None,
         mod = SimplE
     
     result = pipeline(training=training_set,testing=test_set,validation=validation_set,model=mod,model_kwargs=dict(embedding_dim=512),
-        training_loop='LCWA',training_kwargs=dict(num_epochs=100, batch_size=128),stopper='early',stopper_kwargs=dict(patience=10,relative_delta=0.0001,frequency=50),
+        training_loop='sLCWA',training_kwargs=dict(num_epochs=100, batch_size=128),stopper='early',stopper_kwargs=dict(patience=10,relative_delta=0.0001,frequency=50),
         evaluation_kwargs=dict(batch_size=128),random_seed=random_seed        
     )
     if saveModel:
@@ -87,29 +87,29 @@ def trainEmbedding(training_set, test_set, random_seed=None, saveModel = False, 
     '''
     if embedd == 'TransE':
         if random_seed == None:
-            result = pipeline(training=training_set,testing=test_set,model=TransE,training_loop='LCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
+            result = pipeline(training=training_set,testing=test_set,model=TransE,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
         else:
-            result = pipeline(training=training_set,testing=test_set,model=TransE,random_seed=random_seed,training_loop='LCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
+            result = pipeline(training=training_set,testing=test_set,model=TransE,random_seed=random_seed,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
     elif embedd == 'DistMult':
         if random_seed == None:
-            result = pipeline(training=training_set,testing=test_set,model=DistMult,training_loop='LCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
+            result = pipeline(training=training_set,testing=test_set,model=DistMult,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
         else:
-            result = pipeline(training=training_set,testing=test_set,model=DistMult,random_seed=random_seed,training_loop='LCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
+            result = pipeline(training=training_set,testing=test_set,model=DistMult,random_seed=random_seed,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
     elif embedd == 'RotatE':
         if random_seed == None:
-            result = pipeline(training=training_set,testing=test_set,model=RotatE,training_loop='LCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
+            result = pipeline(training=training_set,testing=test_set,model=RotatE,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
         else:
-            result = pipeline(training=training_set,testing=test_set,model=RotatE,random_seed=random_seed,training_loop='LCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
+            result = pipeline(training=training_set,testing=test_set,model=RotatE,random_seed=random_seed,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
     elif embedd == 'PairRE':
         if random_seed == None:
-            result = pipeline(training=training_set,testing=test_set,model=PairRE,training_loop='LCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
+            result = pipeline(training=training_set,testing=test_set,model=PairRE,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
         else:
-            result = pipeline(training=training_set,testing=test_set,model=PairRE,random_seed=random_seed,training_loop='LCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
+            result = pipeline(training=training_set,testing=test_set,model=PairRE,random_seed=random_seed,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
     elif embedd == 'SimplE':
         if random_seed == None:
-            result = pipeline(training=training_set,testing=test_set,model=SimplE,training_loop='LCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
+            result = pipeline(training=training_set,testing=test_set,model=SimplE,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
         else:
-            result = pipeline(training=training_set,testing=test_set,model=SimplE,random_seed=random_seed,training_loop='LCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
+            result = pipeline(training=training_set,testing=test_set,model=SimplE,random_seed=random_seed,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
 
     if saveModel:
         result.save_to_directory(f"approach/trainedEmbeddings/{savename}")
@@ -122,29 +122,29 @@ def trainEmbeddingOutOfBox(training_set, test_set, validation_set, random_seed=N
     '''
     if embedd == 'TransE':
         if random_seed == None:
-            result = pipeline(training=training_set,testing=test_set,model=TransE,training_loop='LCWA')#,training_kwargs=dict(num_epochs=10))
+            result = pipeline(training=training_set,testing=test_set,model=TransE,training_loop='sLCWA')#,training_kwargs=dict(num_epochs=10))
         else:
-            result = pipeline(training=training_set,testing=test_set,model=TransE,random_seed=random_seed,training_loop='LCWA')#,training_kwargs=dict(num_epochs=10))
+            result = pipeline(training=training_set,testing=test_set,model=TransE,random_seed=random_seed,training_loop='sLCWA')#,training_kwargs=dict(num_epochs=10))
     elif embedd == 'DistMult':
         if random_seed == None:
-            result = pipeline(training=training_set,testing=test_set,model=DistMult,training_loop='LCWA')#,training_kwargs=dict(num_epochs=10))
+            result = pipeline(training=training_set,testing=test_set,model=DistMult,training_loop='sLCWA')#,training_kwargs=dict(num_epochs=10))
         else:
-            result = pipeline(training=training_set,testing=test_set,model=DistMult,random_seed=random_seed,training_loop='LCWA')#,training_kwargs=dict(num_epochs=10))
+            result = pipeline(training=training_set,testing=test_set,model=DistMult,random_seed=random_seed,training_loop='sLCWA')#,training_kwargs=dict(num_epochs=10))
     elif embedd == 'RotatE':
         if random_seed == None:
-            result = pipeline(training=training_set,testing=test_set,model=RotatE,training_loop='LCWA')#,training_kwargs=dict(num_epochs=10))
+            result = pipeline(training=training_set,testing=test_set,model=RotatE,training_loop='sLCWA')#,training_kwargs=dict(num_epochs=10))
         else:
-            result = pipeline(training=training_set,testing=test_set,model=RotatE,random_seed=random_seed,training_loop='LCWA')#,training_kwargs=dict(num_epochs=10))
+            result = pipeline(training=training_set,testing=test_set,model=RotatE,random_seed=random_seed,training_loop='sLCWA')#,training_kwargs=dict(num_epochs=10))
     elif embedd == 'PairRE':
         if random_seed == None:
-            result = pipeline(training=training_set,testing=test_set,model=PairRE,training_loop='LCWA')#,training_kwargs=dict(num_epochs=10))
+            result = pipeline(training=training_set,testing=test_set,model=PairRE,training_loop='sLCWA')#,training_kwargs=dict(num_epochs=10))
         else:
-            result = pipeline(training=training_set,testing=test_set,model=PairRE,random_seed=random_seed,training_loop='LCWA')#,training_kwargs=dict(num_epochs=10))
+            result = pipeline(training=training_set,testing=test_set,model=PairRE,random_seed=random_seed,training_loop='sLCWA')#,training_kwargs=dict(num_epochs=10))
     elif embedd == 'SimplE':
         if random_seed == None:
-            result = pipeline(training=training_set,testing=test_set,model=SimplE,training_loop='LCWA')#,training_kwargs=dict(num_epochs=10))
+            result = pipeline(training=training_set,testing=test_set,model=SimplE,training_loop='sLCWA')#,training_kwargs=dict(num_epochs=10))
         else:
-            result = pipeline(training=training_set,testing=test_set,model=SimplE,random_seed=random_seed,training_loop='LCWA')#,training_kwargs=dict(num_epochs=10))
+            result = pipeline(training=training_set,testing=test_set,model=SimplE,random_seed=random_seed,training_loop='sLCWA')#,training_kwargs=dict(num_epochs=10))
 
     if saveModel:
         result.save_to_directory(f"approach/trainedEmbeddings/{savename}")
