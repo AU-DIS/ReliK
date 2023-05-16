@@ -108,7 +108,7 @@ def grabAllKFold(datasetname: str, n_split: int):
 
     return all_triples, all_triples_set, entity_to_id_map, relation_to_id_map, emb_train_triples, emb_test_triples, LP_triples_pos, full_graph
 
-def getOrTrainModels(embedding: str, dataset_name: str, n_split: int, emb_train_triples, emb_test_triples):
+def getOrTrainModels(embedding: str, dataset_name: str, n_split: int, emb_train_triples, emb_test_triples, device):
     models = []
     for i in range(n_split):
         isFile = os.path.isfile(f"approach/trainedEmbeddings/{dataset_name}_{embedding}_{n_split}_fold/{dataset_name}_{i}th/trained_model.pkl")
@@ -118,7 +118,7 @@ def getOrTrainModels(embedding: str, dataset_name: str, n_split: int, emb_train_
             models.append(emb_model)
         else:
             save = f"{dataset_name}_{embedding}_{n_split}_fold/{dataset_name}_{i}th"
-            models.append(emb.loadModel(save))
+            models.append(emb.loadModel(save,device=device))
 
     return models
 
@@ -850,17 +850,17 @@ if __name__ == "__main__":
         ratio = 0.1
 
     if args.dataset_name == 'Countries':
-        torch.set_default_device('cuda:0')
+        device = 'cuda:0'
     if args.dataset_name == 'CodexSmall':
-        torch.set_default_device('cuda:0')
+        device = 'cuda:0'
     if args.dataset_name == 'CodexMedium':
-        torch.set_default_device('cuda:2')
+        device = 'cuda:2'
     if args.dataset_name == 'CodexLarge':
-        torch.set_default_device('cuda:3')
+        device = 'cuda:3'
     if args.dataset_name == 'FB15k237':
-        torch.set_default_device('cuda:4')
+        device = 'cuda:4'
     if args.dataset_name == 'FB15k':
-        torch.set_default_device('cuda:6')
+        device = 'cuda:6'
 
     if args.dataset_name != 'Yago2':
         # collecting all information except the model from the KFold
@@ -870,7 +870,7 @@ if __name__ == "__main__":
         LP_triples_neg = KFoldNegGen(args.dataset_name, nmb_KFold, all_triples_set, LP_triples_pos, emb_train_triples)
 
         # getting or training the models
-        models = getOrTrainModels(args.embedding, args.dataset_name, nmb_KFold, emb_train_triples, emb_test_triples)
+        models = getOrTrainModels(args.embedding, args.dataset_name, nmb_KFold, emb_train_triples, emb_test_triples, device)
 
         if not os.path.isfile(f"approach/KFold/{args.dataset_name}_{nmb_KFold}_fold/subgraphs_{size_subgraphs}.csv"):
             subgraphs = dh.createSubGraphs(all_triples, entity_to_id_map, relation_to_id_map, number_of_graphs=n_subgraphs, size_of_graphs=size_subgraphs)
@@ -884,12 +884,13 @@ if __name__ == "__main__":
             if len(subgraphs) > n_subgraphs:
                     subgraphs = subgraphs[:n_subgraphs]
     else:
-        models = [emb.loadModel(f"Yago2")]
+        models = [emb.loadModel(f"Yago2",'cuda:1')]
 
     tstamp_sib = -1
     tstamp_pre = -1
     tstamp_tpc = -1
     tstamp_den = -1
+
     if 'siblings' in task_list:
         start = timeit.default_timer()
         DoGlobalSiblingScore(args.embedding, args.dataset_name, nmb_KFold, size_subgraphs, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph)

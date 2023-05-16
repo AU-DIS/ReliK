@@ -151,8 +151,8 @@ def trainEmbeddingOutOfBox(training_set, test_set, validation_set, random_seed=N
 
     return result.model, result.training
 
-def loadModel(savename="Test"):
-    model = torch.load(f"approach/trainedEmbeddings/{savename}/trained_model.pkl")
+def loadModel(savename="Test", device='cuda:0'):
+    model = torch.load(f"approach/trainedEmbeddings/{savename}/trained_model.pkl", map_location=device)
     return model
 
 def createEmbeddingMaps_TransE(model, triples):
