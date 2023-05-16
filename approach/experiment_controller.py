@@ -495,11 +495,37 @@ def yago2():
 
     result.save_to_directory(f"approach/trainedEmbeddings/yago2")
 
-def getSiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, samples: float) -> float:
+def findingRankNegHead(orderedList, key, all_triples_set, fix):
+    counter = 1
+    for ele in orderedList:
+        if key[0] == ele[0] and key[1] == ele[1]:
+            return counter
+        tup = (fix,ele[0],ele[1])
+        if tup in all_triples_set:
+            continue
+        counter += 1
+    return None
+
+def findingRankNegTail(orderedList, key, all_triples_set, fix):
+    counter = 1
+    for ele in orderedList:
+        if key[0] == ele[0] and key[1] == ele[1]:
+            return counter
+        tup = (ele[0],ele[1],fix)
+        if tup in all_triples_set:
+            continue
+        counter += 1
+    return None
+
+def getSiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, samples: float, dataset: str) -> float:
     #subgraphs = dh.loadSubGraphs(f"approach/KFold/{len(models)DATASETNAME}_{len(models)}_fold")
 
-    head = entity_to_id_map[u]
-    tail = entity_to_id_map[v]
+    if dataset == 'YAGO2':
+        head = u
+        tail = v
+    else:
+        head = entity_to_id_map[u]
+        tail = entity_to_id_map[v]
 
     HeadModelRank: list[dict[tuple[int,int],float]] = []
     TailModelRank: list[dict[tuple[int,int],float]] = []
@@ -556,7 +582,7 @@ def getSiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], en
         LOWEST_RANK = tRankNeg
     return ( (1/hRankNeg) + (1/tRankNeg) ) /2
 
-def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, sample: float) -> float:
+def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, sample: float, dataset: str) -> float:
     
     subgraph_list, labels, existing, count, ex_triples  = dh.getkHopneighbors(u,v,M)
     
@@ -570,7 +596,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     #alllist = list(allset)
     possible = len(allset)
     print(f'We have {count} existing, {possible} possible, worst rank is {possible-count+1}')
-    selectedComparators = set(random.choices(list(allset),k=max( min(100,len(allset)), int(sample*len(allset))//1) ) )
+    selectedComparators = set(random.choices(list(allset),k=max( min(100,len(allset)), min (int(sample*len(allset))//1, 2000) ) ) )
 
     HeadModelRank = []
     TailModelRank = []
@@ -588,8 +614,12 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
         HeadModelRank.append(dict())
         TailModelRank.append(dict())
 
-    head = u#entity_to_id_map[u]
-    tail = v#entity_to_id_map[v]
+    if dataset == 'YAGO2':
+        head = u
+        tail = v
+    else:
+        head = entity_to_id_map[u]
+        tail = entity_to_id_map[v]
     for tp in getScoreList:
         h = tp[0]
         rel = tp[1]
@@ -671,7 +701,7 @@ def densestSubgraph(datasetname, embedding, score_calculation, sample, models):
     print(f'Starting with {length}')
     for u,v in nx.DiGraph(M).edges():
         print(f'{u} and {v}')
-        w = score_calculation(u, v, M, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample)
+        w = score_calculation(u, v, M, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample, datasetname)
         if G.has_edge(u,v):
             G[u][v]['weight'] += w
         else:
