@@ -845,6 +845,9 @@ if __name__ == "__main__":
         if heuristic == 'sibling':
             heuristic = getSiblingScore
             ratio = 0.1
+    else:
+        heuristic = getSiblingScore
+        ratio = 0.1
 
     if args.dataset_name == 'Countries':
         torch.cuda.device(0)
@@ -858,10 +861,6 @@ if __name__ == "__main__":
         torch.cuda.device(4)
     if args.dataset_name == 'FB15k':
         torch.cuda.device(6)
-        
-    else:
-        heuristic = getSiblingScore
-        ratio = 0.1
 
     if args.dataset_name != 'Yago2':
         # collecting all information except the model from the KFold
