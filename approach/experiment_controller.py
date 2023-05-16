@@ -590,7 +590,6 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     #allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
     allset_u = set(itertools.product([u],range(alltriples.num_relations),range(alltriples.num_entities)))
     allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[v]))
-    print(allset_u)
     allset = allset_v.union(allset_u)
     allset = allset.difference(all_triples_set)
     
@@ -625,6 +624,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
         h = tp[0]
         rel = tp[1]
         t = tp[2]
+        print(tp)
 
         ten = torch.tensor([[h,rel,t]])
         if h == head:
