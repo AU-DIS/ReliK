@@ -10,6 +10,7 @@ import itertools
 import embedding as emb
 import datahandler as dh
 import classifier as cla
+import dsdm as dsd
 
 from pykeen.models import TransE
 from pykeen.models import ERModel
@@ -516,10 +517,12 @@ def getSiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], en
 
             for i in range(len(models)):
                 score = models[i].score_hrt(ten_h)
+                score = score.cpu()
                 score = score.detach().numpy()[0][0]
                 HeadModelRank[i][(rel,ent)] = score
 
                 score = models[i].score_hrt(ten_t)
+                score = score.cpu()
                 score = score.detach().numpy()[0][0]
                 TailModelRank[i][(ent,rel)] = score
 
@@ -591,18 +594,18 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
         h = tp[0]
         rel = tp[1]
         t = tp[2]
-        print(h)
-        print(rel)
-        print(t)
+
         ten = torch.tensor([[h,rel,t]])
         if h == head:
             for i in range(len(models)):
                 score = models[i].score_hrt(ten)
+                score = score.cpu()
                 score = score.detach().numpy()[0][0]
                 HeadModelRank[i][(rel,t)] = score
         if t == tail:
             for i in range(len(models)):
                 score = models[i].score_hrt(ten)
+                score = score.cpu()
                 score = score.detach().numpy()[0][0]
                 TailModelRank[i][(h,rel)] = score
     
@@ -689,6 +692,29 @@ def densestSubgraph(datasetname, embedding, score_calculation, sample, models):
     with open(f"approach/KFold/{datasetname}_{5}_fold/{embedding}_weightedGraph_{score_calculation.__name__}_{sample}_samples.csv", "w") as f:
         wr = csv.writer(f)
         wr.writerows(weighted_graph)
+
+    flowless_R = dsd.flowless(H, 5, weight='weight')
+    greedy_R = dsd.greedy_charikar(H, weight='weight')
+
+    flow_den = []
+    flow_den.append(set(flowless_R[0]))
+
+    greedy_den = []
+    greedy_den.append(set(greedy_R[0]))
+    path = f"approach/Subgraphs/"
+
+    if score_calculation.__name__ == 'getSiblingScore':
+        path += 'Exact/'
+    if score_calculation.__name__ == 'getkHopSiblingScore':
+        path += 'Pessimistic/'
+    if score_calculation.__name__ == 'triangle':
+        path += 'Triangle/'
+    if score_calculation.__name__ == 'binomial':
+        path += 'Binomial/'
+
+    path = f'{path}Dense_'
+    dh.storeDenSubGraphs(path, flow_den)
+    dh.storeDenSubGraphs(path, greedy_den)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
