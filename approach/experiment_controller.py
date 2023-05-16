@@ -517,6 +517,28 @@ def findingRankNegTail(orderedList, key, all_triples_set, fix):
         counter += 1
     return None
 
+def findingRankNegHead_YAGO(orderedList, key, all_triples_set, fix, map, map_r):
+    counter = 1
+    for ele in orderedList:
+        if key[0] == ele[0] and key[1] == ele[1]:
+            return counter
+        tup = (map[fix],map_r[ele[0]],map[ele[1]])
+        if tup in all_triples_set:
+            continue
+        counter += 1
+    return None
+
+def findingRankNegTail_YAGO(orderedList, key, all_triples_set, fix, map, map_r):
+    counter = 1
+    for ele in orderedList:
+        if key[0] == ele[0] and key[1] == ele[1]:
+            return counter
+        tup = (map[ele[0]],map_r[ele[1]],map[fix])
+        if tup in all_triples_set:
+            continue
+        counter += 1
+    return None
+
 def getSiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, samples: float, dataset: str) -> float:
     #subgraphs = dh.loadSubGraphs(f"approach/KFold/{len(models)DATASETNAME}_{len(models)}_fold")
 
@@ -651,18 +673,26 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     tRankNeg = 0
 
     for label in existing:
-        relation = relation_to_id_map[label]
+        if dataset == 'YAGO2':
+            relation = label
+        else:
+            relation = relation_to_id_map[label]
         
         for i in range(len(models)):
             part1 = list(dict(sorted(HeadModelRank[i].items(), key=lambda item: item[1], reverse=True)).keys())
                 
             part2 = list(dict(sorted(TailModelRank[i].items(), key=lambda item: item[1], reverse=True)).keys())
 
-            
-            pos = findingRankNegHead(part1,(relation,tail),all_triples_set,head) / len(models)
-            hRankNeg += (pos / len(u_comp)) * len(allset_u)
-            neg = findingRankNegTail(part2,(head,relation),all_triples_set,tail) / len(models)
-            tRankNeg += (neg / len(v_comp)) * len(allset_v)
+            if dataset == 'YAGO2':
+                pos = findingRankNegHead_YAGO(part1,(relation,tail),all_triples_set,head, entity_to_id_map ,relation_to_id_map) / len(models)
+                hRankNeg += (pos / len(u_comp)) * len(allset_u)
+                neg = findingRankNegTail_YAGO(part2,(head,relation),all_triples_set,tail, entity_to_id_map ,relation_to_id_map) / len(models)
+                tRankNeg += (neg / len(v_comp)) * len(allset_v)
+            else:
+                pos = findingRankNegHead(part1,(relation,tail),all_triples_set,head) / len(models)
+                hRankNeg += (pos / len(u_comp)) * len(allset_u)
+                neg = findingRankNegTail(part2,(head,relation),all_triples_set,tail) / len(models)
+                tRankNeg += (neg / len(v_comp)) * len(allset_v)
 
     hRankNeg = hRankNeg/len(existing)
     tRankNeg = tRankNeg/len(existing)
