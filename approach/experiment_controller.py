@@ -698,68 +698,77 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     return ( 1/hRankNeg + 1/tRankNeg )/2
 
 def densestSubgraph(datasetname, embedding, score_calculation, sample, models):
-    if datasetname == 'Yago2':
-        data=pd.read_csv('approach/Yago2core_facts.clean.notypes_3.tsv',sep='\t',names=['subject', 'predicate', 'object'])
-
-        entity_to_id_map = {v: k for v, k in enumerate(pd.factorize(pd.concat([data['subject'],data['object']]))[1])}
-        entity_to_id_map2 = {k: v for v, k in enumerate(pd.factorize(pd.concat([data['subject'],data['object']]))[1])}
-        relation_to_id_map = {v: k for v, k in enumerate(pd.factorize(data['predicate'])[1])}
-        relation_to_id_map2 = {k: v for v, k in enumerate(pd.factorize(data['predicate'])[1])}
-        #print(len(entity_to_id_map))
-        #print(data)
-        data['subject'] = data['subject'].map(entity_to_id_map2)
-        data['object'] = data['object'].map(entity_to_id_map2)  
-        data['predicate'] = data['predicate'].map(relation_to_id_map2)  
-        #data.replace({'subject': entity_to_id_map})
-        #print(data)
-        ten = torch.tensor(data.values)
-
-        full_graph = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
-        df = pd.DataFrame(full_graph.mapped_triples, columns=['subject', 'predicate', 'object'])
-        all_triples_set = set[tuple[int,int,int]]()
-        for tup in full_graph.mapped_triples.tolist():
-            all_triples_set.add((tup[0],tup[1],tup[2]))
+    path = f"approach/KFold/{datasetname}_{5}_fold/{embedding}_weightedGraph_{score_calculation.__name__}_{sample}_samples.csv"
+    isExist = os.path.exists(path)
+    if isExist:
+        G = nx.Graph()
+        with open(f"approach/KFold/{datasetname}_{5}_fold/{embedding}_weightedGraph_{score_calculation.__name__}_{sample}_samples.csv", "r") as f:
+            plots = csv.reader(f, delimiter=',')
+            for row in plots:
+                G.add_edge(str(row[0]),str(row[1]),weight=float(row[2]))
     else:
-        all_triples, all_triples_set, entity_to_id_map, relation_to_id_map, test_triples, validation_triples = emb.getDataFromPykeen(datasetname=datasetname)
-        full_dataset = torch.cat((all_triples, test_triples.mapped_triples, validation_triples.mapped_triples))
-        full_graph = TriplesFactory(full_dataset,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
-        df = pd.DataFrame(full_graph.triples, columns=['subject', 'predicate', 'object'])
-    M = nx.MultiDiGraph()
+        if datasetname == 'Yago2':
+            data=pd.read_csv('approach/Yago2core_facts.clean.notypes_3.tsv',sep='\t',names=['subject', 'predicate', 'object'])
 
-    for t in df.values:
-        M.add_edge(t[0], t[2], label = t[1])
+            entity_to_id_map = {v: k for v, k in enumerate(pd.factorize(pd.concat([data['subject'],data['object']]))[1])}
+            entity_to_id_map2 = {k: v for v, k in enumerate(pd.factorize(pd.concat([data['subject'],data['object']]))[1])}
+            relation_to_id_map = {v: k for v, k in enumerate(pd.factorize(data['predicate'])[1])}
+            relation_to_id_map2 = {k: v for v, k in enumerate(pd.factorize(data['predicate'])[1])}
+            #print(len(entity_to_id_map))
+            #print(data)
+            data['subject'] = data['subject'].map(entity_to_id_map2)
+            data['object'] = data['object'].map(entity_to_id_map2)  
+            data['predicate'] = data['predicate'].map(relation_to_id_map2)  
+            #data.replace({'subject': entity_to_id_map})
+            #print(data)
+            ten = torch.tensor(data.values)
 
-    G = nx.Graph()
-    count = 0
-    pct = 0
-    start = timeit.default_timer()
-    length: int = len(nx.DiGraph(M).edges())
-    print(f'Starting with {length}')
-    for u,v in nx.DiGraph(M).edges():
-        print(f'{u} and {v}')
-        w = score_calculation(u, v, M, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample, datasetname)
-        if G.has_edge(u,v):
-            G[u][v]['weight'] += w
+            full_graph = CoreTriplesFactory(ten,num_entities=len(entity_to_id_map),num_relations=len(relation_to_id_map))
+            df = pd.DataFrame(full_graph.mapped_triples, columns=['subject', 'predicate', 'object'])
+            all_triples_set = set[tuple[int,int,int]]()
+            for tup in full_graph.mapped_triples.tolist():
+                all_triples_set.add((tup[0],tup[1],tup[2]))
         else:
-            G.add_edge(u, v, weight=w)
-            print(w)
-        count += 1
-        now = timeit.default_timer()
-        print(now-start)
-        if count % ((length // 100)+1) == 0:
-            pct += 1
+            all_triples, all_triples_set, entity_to_id_map, relation_to_id_map, test_triples, validation_triples = emb.getDataFromPykeen(datasetname=datasetname)
+            full_dataset = torch.cat((all_triples, test_triples.mapped_triples, validation_triples.mapped_triples))
+            full_graph = TriplesFactory(full_dataset,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map)
+            df = pd.DataFrame(full_graph.triples, columns=['subject', 'predicate', 'object'])
+        M = nx.MultiDiGraph()
+
+        for t in df.values:
+            M.add_edge(t[0], t[2], label = t[1])
+
+        G = nx.Graph()
+        count = 0
+        pct = 0
+        start = timeit.default_timer()
+        length: int = len(nx.DiGraph(M).edges())
+        print(f'Starting with {length}')
+        for u,v in nx.DiGraph(M).edges():
+            print(f'{u} and {v}')
+            w = score_calculation(u, v, M, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample, datasetname)
+            if G.has_edge(u,v):
+                G[u][v]['weight'] += w
+            else:
+                G.add_edge(u, v, weight=w)
+                print(w)
+            count += 1
             now = timeit.default_timer()
-            print(f'Finished with {pct}% for {datasetname} in time {now-start}, took avg of {(now-start)/pct} per point')
+            print(now-start)
+            if count % ((length // 100)+1) == 0:
+                pct += 1
+                now = timeit.default_timer()
+                print(f'Finished with {pct}% for {datasetname} in time {now-start}, took avg of {(now-start)/pct} per point')
 
-    weighted_graph: list[tuple[str,str,float]] = []
-    for u,v,data in G.edges(data=True):
-        weighted_graph.append((u,v,data['weight']))
+        weighted_graph: list[tuple[str,str,float]] = []
+        for u,v,data in G.edges(data=True):
+            weighted_graph.append((u,v,data['weight']))
 
-    with open(f"approach/KFold/{datasetname}_{5}_fold/{embedding}_weightedGraph_{score_calculation.__name__}_{sample}_samples.csv", "w") as f:
-        wr = csv.writer(f)
-        wr.writerows(weighted_graph)
+        with open(f"approach/KFold/{datasetname}_{5}_fold/{embedding}_weightedGraph_{score_calculation.__name__}_{sample}_samples.csv", "w") as f:
+            wr = csv.writer(f)
+            wr.writerows(weighted_graph)
 
-    flowless_R = dsd.flowless(H, 5, weight='weight')
+    flowless_R = dsd.flowless(G, 5, weight='weight')
     greedy_R = dsd.greedy_charikar(H, weight='weight')
 
     flow_den = []
@@ -767,18 +776,11 @@ def densestSubgraph(datasetname, embedding, score_calculation, sample, models):
 
     greedy_den = []
     greedy_den.append(set(greedy_R[0]))
-    path = f"approach/Subgraphs/"
+    path = f"approach/Subgraphs/datasetname"
+    isExist = os.path.exists(path)
+    if not isExist:
+        os.makedirs(path)
 
-    if score_calculation.__name__ == 'getSiblingScore':
-        path += 'Exact/'
-    if score_calculation.__name__ == 'getkHopSiblingScore':
-        path += 'Pessimistic/'
-    if score_calculation.__name__ == 'triangle':
-        path += 'Triangle/'
-    if score_calculation.__name__ == 'binomial':
-        path += 'Binomial/'
-
-    path = f'{path}Dense_'
     dh.storeDenSubGraphs(path, flow_den)
     dh.storeDenSubGraphs(path, greedy_den)
 
