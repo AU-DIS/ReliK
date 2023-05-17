@@ -136,7 +136,7 @@ def KFoldNegGen(datasetname: str, n_split: int, all_triples_set, LP_triples_pos,
             LP_triples_neg.append(neg_triples)
     return LP_triples_neg
 
-def DoGlobalSiblingScore(embedding, datasetname, n_split, size_subgraph, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph):
+def DoGlobalSiblingScore(embedding, datasetname, n_split, size_subgraph, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample):
     df = pd.DataFrame(full_graph.triples, columns=['subject', 'predicate', 'object'])
     M = nx.MultiDiGraph()
 
@@ -162,7 +162,7 @@ def DoGlobalSiblingScore(embedding, datasetname, n_split, size_subgraph, models,
         sib_sum = 0
         for u,v in nx.DiGraph(M).subgraph(subgraph).edges():
             #print(f'{u} and {v}')
-            w = getSiblingScore(u, v, M, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, n_split)
+            w = binomial(u, v, M, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample, datasetname)
             count += 1
             sib_sum += w
 
@@ -793,7 +793,7 @@ if __name__ == "__main__":
     parser.add_argument('-n','--n_subgraphs', dest='n_subgraphs', type=int, help='choose which n of subgraphs are getting tested')
     parser.add_argument('-st','--setup', dest='setup',action='store_true' ,help='if set, just setup and train embedding, subgraphs, neg-triples')
     parser.add_argument('-heur','--heuristic', dest='heuristic', type=str, help='which heuristic should be used in the case of dense subgraph task')
-    parser.add_argument('-r','--ratio', dest='ratio', type=str, help='how much should be sampled for binomial')
+    parser.add_argument('-r','--ratio', dest='ratio', type=str, help='how much should be sampled for binomial', default=0.1)
     args = parser.parse_args()
 
     nmb_KFold: int = 5
@@ -836,7 +836,8 @@ if __name__ == "__main__":
         n_subgraphs = args.n_subgraphs
     else:
         n_subgraphs = 500
-
+    if 'siblings' in task_list:
+        ratio = float(args.ratio)
     if args.heuristic:
         heuristic = args.heuristic
         if heuristic == 'binomial':
@@ -892,19 +893,25 @@ if __name__ == "__main__":
     tstamp_den = -1
 
     if 'siblings' in task_list:
+        print('start with siblings')
         start = timeit.default_timer()
         DoGlobalSiblingScore(args.embedding, args.dataset_name, nmb_KFold, size_subgraphs, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph)
         end = timeit.default_timer()
+        print('end with siblings')
         tstamp_sib = end - start
     if 'prediction' in task_list:
+        print('start with prediction')
         start = timeit.default_timer()
         prediction(args.embedding, args.dataset_name, size_subgraphs, emb_train_triples, all_triples_set, nmb_KFold)
         end = timeit.default_timer()
+        print('end with prediction')
         tstamp_pre = end - start
     if 'triple' in task_list:
+        print('start with triple')
         start = timeit.default_timer()
         classifierExp(args.embedding, args.dataset_name, size_subgraphs, LP_triples_pos,  LP_triples_neg, entity_to_id_map, relation_to_id_map, emb_train_triples, nmb_KFold)
         end = timeit.default_timer()
+        print('end with triple')
         tstamp_tpc = end - start
     if 'densest' in task_list:
         start = timeit.default_timer()
