@@ -895,7 +895,7 @@ if __name__ == "__main__":
     if 'siblings' in task_list:
         print('start with siblings')
         start = timeit.default_timer()
-        DoGlobalSiblingScore(args.embedding, args.dataset_name, nmb_KFold, size_subgraphs, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph)
+        DoGlobalSiblingScore(args.embedding, args.dataset_name, nmb_KFold, size_subgraphs, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, ratio)
         end = timeit.default_timer()
         print('end with siblings')
         tstamp_sib = end - start
