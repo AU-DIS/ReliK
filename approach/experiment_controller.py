@@ -621,7 +621,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     
     #alllist = list(allset)
     possible = len(allset)
-    print(f'We have {count} existing, {possible} possible, worst rank is {possible-count+1}')
+    #print(f'We have {count} existing, {possible} possible, worst rank is {possible-count+1}')
     selectedComparators = set(random.choices(list(allset),k=max( min(100,len(allset)), min (int(sample*len(allset))//1, 2000) ) ) )
 
     HeadModelRank = []
