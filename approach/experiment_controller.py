@@ -853,7 +853,7 @@ if __name__ == "__main__":
     if args.dataset_name == 'Countries':
         device = 'cuda:0'
     if args.dataset_name == 'CodexSmall':
-        device = 'cuda:0'
+        device = 'cuda:6'
     if args.dataset_name == 'CodexMedium':
         device = 'cuda:2'
     if args.dataset_name == 'CodexLarge':
