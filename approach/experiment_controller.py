@@ -486,7 +486,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     lst_emb_r = list(range(alltriples.num_relations))
     bigcount = 0
     poss = alltriples.num_entities*alltriples.num_relations
-    limit = 1/2 * max( min(100,poss), min (int(sample*poss)//1, 500) )
+    limit = 1/2 * max( min(100,poss), min (int(sample*poss)//1, 1000) )
     first = True
     while len(allset_u) < limit:
         relation = random.choice(lst_emb_r)
@@ -557,8 +557,8 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
             count += 1
             he_sc += torch.sum(rslt_u_score > tr).detach().numpy() + 1
             ta_sc += torch.sum(rslt_v_score > tr).detach().numpy() + 1
-        hRankNeg += ((he_sc / count)/len(models))
-        tRankNeg += ((ta_sc / count)/len(models))
+        hRankNeg += ((he_sc / count)/len(models)) * poss
+        tRankNeg += ((ta_sc / count)/len(models)) * poss
                    
         
     '''
