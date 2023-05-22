@@ -11,7 +11,7 @@ from pykeen.pipeline import pipeline
 import timeit
 from typing import cast
 
-def getDataFromPykeen(datasetname: str='Nations') -> [object, set[tuple[int,int,int]]]:
+def getDataFromPykeen(datasetname: str='Nations'):
     '''
     Using datasets from the pykeen library, and preparing data for our implementaton
     '''
