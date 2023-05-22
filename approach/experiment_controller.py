@@ -21,6 +21,7 @@ from pykeen.triples import CoreTriplesFactory
 from pykeen.datasets import Dataset
 import gc
 import random
+import numpy as np
 
 import os
 
@@ -30,59 +31,6 @@ def makeTCPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedd
     LP_test_score = cla.testClassifierSubgraphs(clf, X_test, y_test, entity2embedding, relation2embedding, subgraphs)
 
     return LP_test_score
-
-def getSiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, n_split: int) -> float:
-
-    head = entity_to_id_map[u]
-    tail = entity_to_id_map[v]
-
-    HeadModelRank: list[dict[tuple[int,int],float]] = []
-    TailModelRank: list[dict[tuple[int,int],float]] = []
-
-    for _ in range(n_split):
-        HeadModelRank.append(dict())
-        TailModelRank.append(dict())
-
-    #for entstr in list(subgraphs[0]):
-    for ent in range(alltriples.num_entities):
-        for rel in range(alltriples.num_relations):
-            #ent = entity_to_id_map[entstr]
-            ten_h = torch.tensor([[head,rel,ent]])
-            ten_t = torch.tensor([[ent,rel,tail]])
-
-            for i in range(n_split):
-                score = models[i].score_hrt(ten_h)
-                score = score.cpu()
-                score = score.detach().numpy()[0][0]
-                HeadModelRank[i][(rel,ent)] = score
-
-                score = models[i].score_hrt(ten_t)
-                score = score.cpu()
-                score = score.detach().numpy()[0][0]
-                TailModelRank[i][(ent,rel)] = score
-
-    hRankNeg = 0
-    tRankNeg = 0
-
-    between_labels: list[str] = []
-
-    for el in M.get_edge_data(u,v).items():
-        between_labels.append(el[1]['label'])
-
-    for label in between_labels:
-        relation = relation_to_id_map[label]
-        
-        for i in range(n_split):
-            part1 = list(dict(sorted(HeadModelRank[i].items(), key=lambda item: item[1], reverse=True)).keys())
-                
-            part2 = list(dict(sorted(TailModelRank[i].items(), key=lambda item: item[1], reverse=True)).keys())
-
-            hRankNeg += dh.findingRankNegHead(part1,(relation,tail),all_triples_set,head) / n_split
-            tRankNeg += dh.findingRankNegTail(part2,(head,relation),all_triples_set,tail) / n_split
-
-    hRankNeg = hRankNeg/len(between_labels)
-    tRankNeg = tRankNeg/len(between_labels)
-    return ( (1/hRankNeg) + (1/tRankNeg) ) /2
 
 def grabAllKFold(datasetname: str, n_split: int):
     all_triples, all_triples_set, entity_to_id_map, relation_to_id_map, test_triples, validation_triples = emb.getDataFromPykeen(datasetname=datasetname)
@@ -140,15 +88,13 @@ def DoGlobalSiblingScore(embedding, datasetname, n_split, size_subgraph, models,
     df = pd.DataFrame(full_graph.triples, columns=['subject', 'predicate', 'object'])
     M = nx.MultiDiGraph()
 
-    subgraphs = list[set[str]]()
-    
-    with open(f"approach/KFold/{datasetname}_{n_split}_fold/subgraphs_{size_subgraph}.csv", "r") as f:
-        rows = csv.reader(f, delimiter=',')
-        for row in rows:
-            subgraph = set[str]()
-            for ele in row:
-                subgraph.add(ele)
-            subgraphs.append(subgraph)
+    subgraphs = dh.loadSubGraphs(f"approach/KFold/{args.dataset_name}_{nmb_KFold}_fold", size_subgraphs)
+    if len(subgraphs) < n_subgraphs:
+        subgraphs_new = dh.createSubGraphs(all_triples, entity_to_id_map, relation_to_id_map, size_of_graphs=size_subgraphs, number_of_graphs=(n_subgraphs-len(subgraphs)))
+        dh.storeSubGraphs(f"approach/KFold/{args.dataset_name}_{nmb_KFold}_fold", subgraphs_new)
+        subgraphs = subgraphs + subgraphs_new
+    if len(subgraphs) > n_subgraphs:
+        subgraphs = subgraphs[:n_subgraphs]
 
     #for e in dh.loadSubGraphsEmbSel(f"approach/Subgraphs/Exact", embedding): subgraphs.append(e)
 
@@ -169,7 +115,7 @@ def DoGlobalSiblingScore(embedding, datasetname, n_split, size_subgraph, models,
         sib_sum = sib_sum/count
         model_siblings_score.append(sib_sum)
         tracker += 1
-        if tracker % 100 == 0: print(f'have done {tracker} of {len(subgraphs)} in {embedding}')
+        if tracker % 10 == 0: print(f'have done {tracker} of {len(subgraphs)} in {embedding}')
 
     path = f"approach/scoreData/{datasetname}_{n_split}/{embedding}/siblings_score_subgraphs_{size_subgraph}.csv"
     c = open(f'{path}', "w")
@@ -221,38 +167,33 @@ def classifierExp(embedding, datasetname, size_subgraph, LP_triples_pos,  LP_tri
     c.close()
 
 def prediction(embedding, datasetname, size_subgraph, emb_train, all_triples_set, n_split):
-    model_relation_sum_at_1 = []
-    model_relation_sum_at_5 = []
-    model_relation_sum_at_10 = []
-    model_relation_sum_for_MRR = []
+    subgraphs = dh.loadSubGraphs(f"approach/KFold/{args.dataset_name}_{nmb_KFold}_fold", size_subgraphs)
+    if len(subgraphs) < n_subgraphs:
+        subgraphs_new = dh.createSubGraphs(all_triples, entity_to_id_map, relation_to_id_map, size_of_graphs=size_subgraphs, number_of_graphs=(n_subgraphs-len(subgraphs)))
+        dh.storeSubGraphs(f"approach/KFold/{args.dataset_name}_{nmb_KFold}_fold", subgraphs_new)
+        subgraphs = subgraphs + subgraphs_new
+    if len(subgraphs) > n_subgraphs:
+        subgraphs = subgraphs[:n_subgraphs]
 
-    model_tail_sum_at_1 = []
-    model_tail_sum_at_5 = []
-    model_tail_sum_at_10 = []
-    model_tail_sum_for_MRR = []
+    fin_score_tail_at1 = []
+    fin_score_tail_at5 = []
+    fin_score_tail_at10 = []
+    fin_score_tail_atMRR = []
 
-    for i in range(n_split):
-        model_relation_sum_at_1.append([])
-        model_relation_sum_at_5.append([])
-        model_relation_sum_at_10.append([])
-        model_relation_sum_for_MRR.append([])
-
-        model_tail_sum_at_1.append([])
-        model_tail_sum_at_5.append([])
-        model_tail_sum_at_10.append([])
-        model_tail_sum_for_MRR.append([])
-
-    subgraphs = list[set[str]]()
-    
-    with open(f"approach/KFold/{datasetname}_{n_split}_fold/subgraphs_{size_subgraph}.csv", "r") as f:
-        rows = csv.reader(f, delimiter=',')
-        for row in rows:
-            subgraph = set[str]()
-            for ele in row:
-                subgraph.add(ele)
-            subgraphs.append(subgraph)
-
+    fin_score_relation_at1 = []
+    fin_score_relation_at5 = []
+    fin_score_relation_at10 = []
+    fin_score_relation_atMRR = []
     for subgraph in subgraphs:
+        model_relation_sum_at_1 = []
+        model_relation_sum_at_5 = []
+        model_relation_sum_at_10 = []
+        model_relation_sum_for_MRR = []
+
+        model_tail_sum_at_1 = []
+        model_tail_sum_at_5 = []
+        model_tail_sum_at_10 = []
+        model_tail_sum_for_MRR = []
         for i in range(n_split):
             relation_sum_at_1 = 0
             relation_sum_at_5 = 0
@@ -265,124 +206,58 @@ def prediction(embedding, datasetname, size_subgraph, emb_train, all_triples_set
             tail_sum_for_MRR = 0
             counter_of_test_tp = 0
             for tp in LP_triples_pos[i]:
-                counter = 0
                 if (emb_train[i].entity_id_to_label[tp[0]] in subgraph) and (emb_train[0].entity_id_to_label[tp[2]] in subgraph):
                     counter_of_test_tp += 1
-                    tmp_scores = dict()
-                    for relation in range(emb_train[0].num_relations):
-                        tup = (tp[0],relation,tp[2])
-                        if tup in all_triples_set and relation != tp[1]:
-                            continue
-                        ten = torch.tensor([[tp[0],relation,tp[2]]])
-                        score = models[i].score_hrt(ten)
-                        score = score.cpu()
-                        score = score.detach().numpy()[0][0]
-                        tmp_scores[relation] = score
-                    sl = sorted(tmp_scores.items(), key=lambda x:x[1], reverse=True)
-                    
-                    for pair in sl:
-                            counter += 1
-                            if pair[0] == tp[1]:
-                                if counter <= 1:
-                                    relation_sum_at_1 += 1
-                                    relation_sum_at_5 += 1
-                                    relation_sum_at_10 += 1
-                                elif counter <= 5:
-                                    relation_sum_at_5 += 1
-                                    relation_sum_at_10 += 1
-                                elif counter <= 10:
-                                    relation_sum_at_10 += 1
-                                relation_sum_for_MRR += 1/counter
-                                break
-                    
-                    tmp_scores = dict()
-                    for tail in range(emb_train[0].num_entities):
-                        tup = (tp[0],tp[1],tail)
-                        if tup in all_triples_set and tail != tp[2]:
-                            continue
-                        ten = torch.tensor([[tp[0],tp[1],tail]])
-                        score = models[i].score_hrt(ten)
-                        score = score.cpu()
-                        score = score.detach().numpy()[0][0]
-                        tmp_scores[tail] = score
+                    ten = torch.tensor([[tp[0],tp[1],tp[2]]])
+                    comp_score = models[i].score_hrt(ten)
 
-                    sl = sorted(tmp_scores.items(), key=lambda x:x[1], reverse=True)
-                        
-                    for pair in sl:
-                            counter += 1
-                            if pair[0] == tp[2]:
-                                if counter <= 1:
-                                    tail_sum_at_1 += 1
-                                    tail_sum_at_5 += 1
-                                    tail_sum_at_10 += 1
-                                elif counter <= 5:
-                                    tail_sum_at_5 += 1
-                                    tail_sum_at_10 += 1
-                                elif counter <= 10:
-                                    tail_sum_at_10 += 1
-                                tail_sum_for_MRR += 1/counter
-                                break
+                    list_tail = torch.tensor([i for i in range(emb_train[0].num_entities) if (tp[0],tp[1], i) not in all_triples_set ])
+                    list_relation = torch.tensor([i for i in range(emb_train[0].num_relations) if (tp[0],i, tp[2]) not in all_triples_set ])
+
+                    tail_rank = torch.sum(models[i].score_t(ten[0][:2].resize_(1,2), tails=list_tail) > comp_score).cpu().detach().numpy() + 1
+                    relation_rank = torch.sum(models[i].score_r(torch.cat([ten[0][:1], ten[0][1+1:]]).resize_(1,2), relations=list_relation) > comp_score).cpu().detach().numpy() + 1
+                    if relation_rank <= 1:
+                        relation_sum_at_1 += 1
+                        relation_sum_at_5 += 1
+                        relation_sum_at_10 += 1
+                    elif relation_rank <= 5:
+                        relation_sum_at_5 += 1
+                        relation_sum_at_10 += 1
+                    elif relation_rank <= 10:
+                        relation_sum_at_10 += 1
+                    relation_sum_for_MRR += 1/relation_rank
+
+                    if tail_rank <= 1:
+                        tail_sum_at_1 += 1
+                        tail_sum_at_5 += 1
+                        tail_sum_at_10 += 1
+                    elif tail_rank <= 5:
+                        tail_sum_at_5 += 1
+                        tail_sum_at_10 += 1
+                    elif tail_rank <= 10:
+                        tail_sum_at_10 += 1
+                    tail_sum_for_MRR += 1/tail_rank
             if counter_of_test_tp > 0:
-                model_tail_sum_at_1[i].append(tail_sum_at_1/counter_of_test_tp)
-                model_tail_sum_at_5[i].append(tail_sum_at_5/counter_of_test_tp)
-                model_tail_sum_at_10[i].append(tail_sum_at_10/counter_of_test_tp)
-                model_tail_sum_for_MRR[i].append(tail_sum_for_MRR/counter_of_test_tp)
+                model_tail_sum_at_1.append(tail_sum_at_1/counter_of_test_tp)
+                model_tail_sum_at_5.append(tail_sum_at_5/counter_of_test_tp)
+                model_tail_sum_at_10.append(tail_sum_at_10/counter_of_test_tp)
+                model_tail_sum_for_MRR.append(tail_sum_for_MRR/counter_of_test_tp)
 
-                model_relation_sum_at_1[i].append(relation_sum_at_1/counter_of_test_tp)
-                model_relation_sum_at_5[i].append(relation_sum_at_5/counter_of_test_tp)
-                model_relation_sum_at_10[i].append(relation_sum_at_10/counter_of_test_tp)
-                model_relation_sum_for_MRR[i].append(relation_sum_for_MRR/counter_of_test_tp)
-            else:
-                model_relation_sum_at_1[i].append(-100)
-                model_relation_sum_at_5[i].append(-100)
-                model_relation_sum_at_10[i].append(-100)
-                model_relation_sum_for_MRR[i].append(-100)
+                model_relation_sum_at_1.append(relation_sum_at_1/counter_of_test_tp)
+                model_relation_sum_at_5.append(relation_sum_at_5/counter_of_test_tp)
+                model_relation_sum_at_10.append(relation_sum_at_10/counter_of_test_tp)
+                model_relation_sum_for_MRR.append(relation_sum_for_MRR/counter_of_test_tp)
+        if len(model_relation_sum_at_1) > 0:
+            fin_score_tail_at1.append(np.mean(model_tail_sum_at_1))
+            fin_score_tail_at5.append(np.mean(model_tail_sum_at_5))
+            fin_score_tail_at10.append(np.mean(model_tail_sum_at_10))
+            fin_score_tail_atMRR.append(np.mean(model_tail_sum_for_MRR))
 
-                model_relation_sum_at_1[i].append(-100)
-                model_tail_sum_at_5[i].append(-100)
-                model_tail_sum_at_10[i].append(-100)
-                model_tail_sum_for_MRR[i].append(-100)
-
-    fin_score_tail_at1 = []
-    fin_score_tail_at5 = []
-    fin_score_tail_at10 = []
-    fin_score_tail_atMRR = []
-
-    fin_score_relation_at1 = []
-    fin_score_relation_at5 = []
-    fin_score_relation_at10 = []
-    fin_score_relation_atMRR = []
-    for i in range(len(model_relation_sum_at_1[0])):
-        tailat1 = 0
-        tailat5 = 0
-        tailat10 = 0
-        tailatMRR = 0
-
-        relationat1 = 0
-        relationat5 = 0
-        relationat10 = 0
-        relationatMRR = 0
-        measured = 0
-        for j in range(n_split):
-            if model_relation_sum_at_1[j][i] >= 0:
-                tailat1 += model_relation_sum_at_1[j][i]
-                measured += 1
-            if model_relation_sum_at_5[j][i] >= 0:
-                tailat5 += model_relation_sum_at_5[j][i]
-            if model_relation_sum_at_10[j][i] >= 0:
-                tailat10 += model_relation_sum_at_10[j][i]
-            if model_relation_sum_for_MRR[j][i] >= 0:
-                tailatMRR += model_relation_sum_for_MRR[j][i]
-
-            if model_relation_sum_at_1[j][i] >= 0:
-                relationat1 += model_relation_sum_at_1[j][i]
-            if model_relation_sum_at_5[j][i] >= 0:
-                relationat5 += model_relation_sum_at_5[j][i]
-            if model_relation_sum_at_10[j][i] >= 0:
-                relationat10 += model_relation_sum_at_10[j][i]
-            if model_relation_sum_for_MRR[j][i] >= 0:
-                relationatMRR += model_relation_sum_for_MRR[j][i]
-        if measured == 0:
+            fin_score_relation_at1.append(np.mean(model_relation_sum_at_1))
+            fin_score_relation_at5.append(np.mean(model_relation_sum_at_5))
+            fin_score_relation_at10.append(np.mean(model_relation_sum_at_10))
+            fin_score_relation_atMRR.append(np.mean(model_relation_sum_for_MRR))
+        else:
             fin_score_tail_at1.append(-100)
             fin_score_tail_at5.append(-100)
             fin_score_tail_at10.append(-100)
@@ -392,18 +267,8 @@ def prediction(embedding, datasetname, size_subgraph, emb_train, all_triples_set
             fin_score_relation_at5.append(-100)
             fin_score_relation_at10.append(-100)
             fin_score_relation_atMRR.append(-100)
-        else:
-            fin_score_tail_at1.append(tailat1/measured)
-            fin_score_tail_at5.append(tailat5/measured)
-            fin_score_tail_at10.append(tailat10/measured)
-            fin_score_tail_atMRR.append(tailatMRR/measured)
 
-            fin_score_relation_at1.append(relationat1/measured)
-            fin_score_relation_at5.append(relationat5/measured)
-            fin_score_relation_at10.append(relationat10/measured)
-            fin_score_relation_atMRR.append(relationatMRR/measured)
-
-    path = f"approach/scoreData/{datasetname}_{n_split}/{embedding}/prediction_score_subgraphs_{size_subgraph}.csv"
+    path = f"approach/scoreData/{datasetname}_{n_split}/{embedding}/prediction_score_subgraphs2_{size_subgraph}.csv"
     c = open(f'{path}', "w")
     writer = csv.writer(c)
     data = ['subgraph','Tail Hit @ 1','Tail Hit @ 5','Tail Hit @ 10','Tail MRR','Relation Hit @ 1','Relation Hit @ 5','Relation Hit @ 10','Relation MRR']
@@ -459,7 +324,7 @@ def Yago2():
     del LP_triples
     gc.collect()
     torch.cuda.empty_cache()
-    print(torch.cuda.memory_summary(device=None, abbreviated=False))
+    #print(torch.cuda.memory_summary(device=None, abbreviated=False))
     '''#import pykeen.datasets as dat
     #dataset = dat.Nations()
     trans = TransE(triples_factory=h.training, embedding_dim=50)
@@ -489,7 +354,7 @@ def Yago2():
 
 
 
-    result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop='sLCWA', model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50), evaluation_fallback= True, device='cuda:1')   
+    result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop='sLCWA', model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50), evaluation_fallback= True, device='cuda:5')   
 
     #model = result.model
 
@@ -605,6 +470,167 @@ def getSiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], en
     return ( (1/hRankNeg) + (1/tRankNeg) ) /2
 
 def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, sample: float, dataset: str) -> float:
+    
+    subgraph_list, labels, existing, count, ex_triples  = dh.getkHopneighbors(u,v,M)
+    #print(entity_to_id_map)
+    #subgraph_list, labels, existing, count, ex_triples  = dh.getkHopneighbors(entity_to_id_map[u],entity_to_id_map[v],M)
+    
+    #allset_u = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
+    #allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
+
+    allset = set()
+    allset_u = set()
+    allset_v = set()
+    related_nodes = set()
+    lst_emb = list(range(alltriples.num_entities))
+    lst_emb_r = list(range(alltriples.num_relations))
+    bigcount = 0
+    poss = alltriples.num_entities*alltriples.num_relations
+    limit = 1/2 * max( min(100,poss), min (int(sample*poss)//1, 500) )
+    first = True
+    while len(allset_u) < limit:
+        relation = random.choice(lst_emb_r)
+        tail = random.choice(lst_emb)
+        kg_neg_triple_tuple = (entity_to_id_map[u],relation,tail)
+        if kg_neg_triple_tuple not in all_triples_set:
+            if first:
+                first = False
+                rslt_torch_u = torch.LongTensor([entity_to_id_map[u],relation,tail])
+                rslt_torch_u = rslt_torch_u.resize_(1,3)
+            else:
+                rslt_torch_u = torch.cat((rslt_torch_u, torch.LongTensor([entity_to_id_map[u],relation,tail]).resize_(1,3)))
+            allset_u.add(kg_neg_triple_tuple)
+
+    first = True
+    while len(allset_v) < limit:
+        relation = random.choice(lst_emb_r)
+        head = random.choice(lst_emb)
+        kg_neg_triple_tuple = (head,relation,entity_to_id_map[v])
+        if kg_neg_triple_tuple not in all_triples_set:
+            if first:
+                first = False
+                rslt_torch_v = torch.LongTensor([head,relation,entity_to_id_map[v]])
+                rslt_torch_v = rslt_torch_v.resize_(1,3)
+            else:
+                rslt_torch_v = torch.cat((rslt_torch_v, torch.LongTensor([head,relation,entity_to_id_map[v]]).resize_(1,3)))
+            allset_v.add(kg_neg_triple_tuple)
+
+    #print(rslt_torch_v)
+    allset = allset_u.union(allset_v)
+    selectedComparators = allset
+    '''print('HO')
+    if dataset == 'Yago2':
+        allset_u = set(itertools.product([u],range(alltriples.num_relations),range(alltriples.num_entities)))
+        allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[v]))
+    else:
+        allset_u = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
+        allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
+    print('YO')
+    allset = allset_v.union(allset_u)
+    allset = allset.difference(all_triples_set)
+    print('BO')'''
+    '''#alllist = list(allset)
+    possible = len(allset)
+    #print(f'We have {count} existing, {possible} possible, worst rank is {possible-count+1}')
+    print(max( min(100,len(allset)), min (int(sample*len(allset))//1, 200) ))
+    selectedComparators = set(random.choices(list(allset),k=max( min(100,len(allset)), min (int(sample*len(allset))//1, 200) ) ) )'''
+    #ex_torch = 
+    first = True
+    for tp in list(existing):
+        if first:
+            first = False
+            ex_torch = torch.LongTensor([entity_to_id_map[u],relation_to_id_map[tp],entity_to_id_map[v]])
+            ex_torch = ex_torch.resize_(1,3)
+        else:
+            ex_torch = torch.cat((ex_torch, torch.LongTensor([entity_to_id_map[u],relation_to_id_map[tp],entity_to_id_map[v]]).resize_(1,3)))
+
+    hRankNeg = 0
+    tRankNeg = 0
+    for i in range(len(models)):
+        comp_score = models[i].score_hrt(ex_torch).cpu()
+        rslt_u_score = models[i].score_hrt(rslt_torch_u)
+        rslt_v_score = models[i].score_hrt(rslt_torch_v)
+        count = 0
+        he_sc = 0
+        ta_sc = 0
+        for tr in comp_score:
+            count += 1
+            he_sc += torch.sum(rslt_u_score > tr).detach().numpy() + 1
+            ta_sc += torch.sum(rslt_v_score > tr).detach().numpy() + 1
+        hRankNeg += ((he_sc / count)/len(models))
+        tRankNeg += ((ta_sc / count)/len(models))
+                   
+        
+    '''
+    HeadModelRank = []
+    TailModelRank = []
+    ex_triples_new = set()
+    for tp in list(ex_triples):
+        if dataset == 'Yago2':
+            ex_triples_new.add( (tp[0], tp[1], tp[2]) )
+        else:
+            ex_triples_new.add( (entity_to_id_map[tp[0]], relation_to_id_map[tp[1]], entity_to_id_map[tp[2]]) )
+    getScoreList = list(selectedComparators.union(ex_triples_new))
+    #print(getScoreList)
+    u_comp = allset_u.intersection(selectedComparators)
+    v_comp = allset_v.intersection(selectedComparators)
+
+    for i in range(len(models)):
+        HeadModelRank.append(dict())
+        TailModelRank.append(dict())
+
+    if dataset == 'Yago2':
+        head = u
+        tail = v
+    else:
+        head = entity_to_id_map[u]
+        tail = entity_to_id_map[v]
+    for tp in getScoreList:
+        h = tp[0]
+        rel = tp[1]
+        t = tp[2]
+        ten = torch.tensor([[h,rel,t]])
+        if h == head:
+            for i in range(len(models)):
+                score = models[i].score_hrt(ten)
+                score = score.cpu()
+                score = score.detach().numpy()[0][0]
+                HeadModelRank[i][(rel,t)] = score
+        if t == tail:
+            for i in range(len(models)):
+                score = models[i].score_hrt(ten)
+                score = score.cpu()
+                score = score.detach().numpy()[0][0]
+                TailModelRank[i][(h,rel)] = score
+    
+    hRankNeg = 0
+    tRankNeg = 0
+
+    for label in existing:
+        if dataset == 'Yago2':
+            relation = label
+        else:
+            relation = relation_to_id_map[label]
+        
+        for i in range(len(models)):
+            part1 = list(dict(sorted(HeadModelRank[i].items(), key=lambda item: item[1], reverse=True)).keys())
+                
+            part2 = list(dict(sorted(TailModelRank[i].items(), key=lambda item: item[1], reverse=True)).keys())
+
+            if dataset == 'Yago2':
+                pos = findingRankNegHead_Yago(part1,(relation,tail),all_triples_set,head, entity_to_id_map ,relation_to_id_map) / len(models)
+                hRankNeg += (pos / len(u_comp)) * poss
+                neg = findingRankNegTail_Yago(part2,(head,relation),all_triples_set,tail, entity_to_id_map ,relation_to_id_map) / len(models)
+                tRankNeg += (neg / len(v_comp)) * poss
+            else:
+                pos = findingRankNegHead(part1,(relation,tail),all_triples_set,head) / len(models)
+                hRankNeg += (pos / len(u_comp)) * poss
+                neg = findingRankNegTail(part2,(head,relation),all_triples_set,tail) / len(models)
+                tRankNeg += (neg / len(v_comp)) * poss'''
+    
+    return ( 1/hRankNeg + 1/tRankNeg )/2
+
+def binomial2(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, sample: float, dataset: str) -> float:
     
     subgraph_list, labels, existing, count, ex_triples  = dh.getkHopneighbors(u,v,M)
     
@@ -847,7 +873,7 @@ if __name__ == "__main__":
             heuristic = getSiblingScore
             ratio = 0.1
     else:
-        heuristic = getSiblingScore
+        heuristic = binomial
         ratio = 0.1
 
     if args.dataset_name == 'Countries':
@@ -862,6 +888,15 @@ if __name__ == "__main__":
         device = 'cuda:4'
     if args.dataset_name == 'FB15k':
         device = 'cuda:6'
+
+    '''if torch.has_mps:
+        device = 'mps'''
+    device = 'cpu'
+
+    path = f"approach/scoreData/{args.dataset_name}_{nmb_KFold}/{args.embedding}"
+    isExist = os.path.exists(path)
+    if not isExist:
+        os.makedirs(path)
 
     if args.dataset_name != 'Yago2':
         # collecting all information except the model from the KFold
@@ -919,12 +954,14 @@ if __name__ == "__main__":
         end = timeit.default_timer()
         tstamp_den = end - start
 
-
+    
     path = f"approach/scoreData/time_measures.csv"
+    ex = os.path.isfile(path)
     c = open(f'{path}', "a+")
     writer = csv.writer(c)
-    data = ['dataset','embedding','size subgraphs','nmb subgraphs','sib_time','prediction_time','triple_time','densest_time']
-    writer.writerow(data)
+    if ex:
+        data = ['dataset','embedding','size subgraphs','nmb subgraphs','sib_time','prediction_time','triple_time','densest_time']
+        writer.writerow(data)
     data = [args.dataset_name, args.embedding, size_subgraphs, n_subgraphs, tstamp_sib, tstamp_pre, tstamp_tpc, tstamp_den]
     writer.writerow(data)
     c.close()

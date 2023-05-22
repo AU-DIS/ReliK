@@ -17,7 +17,7 @@ def trainClassifier(X_train, Y_train, entity2embedding, relation2embedding, type
         clf = LinearRegression()
     X_train_emb = []
     for tp in X_train:
-        X_train_emb.append([*entity2embedding[tp[0]],*relation2embedding[tp[1]],*entity2embedding[tp[2]]])
+        X_train_emb.append([entity2embedding[tp[0]],relation2embedding[tp[1]],entity2embedding[tp[2]]])
     X_train_emb = np.array(X_train_emb)
     clf.fit(X_train_emb, Y_train)
     return clf
@@ -61,7 +61,7 @@ def testClassifierSubgraphs(classifier, X_test, y_test, entity2embedding, relati
         index = 0
         for tp in X_test:
             if ((tp[0] in subgraph) and (tp[2] in subgraph)):
-                X_test_emb.append([*entity2embedding[tp[0]],*relation2embedding[tp[1]],*entity2embedding[tp[2]]])
+                X_test_emb.append([entity2embedding[tp[0]],relation2embedding[tp[1]],entity2embedding[tp[2]]])
                 y_test_emb.append(y_test[index])
             index += 1
         y_test_emb = np.array(y_test_emb)
