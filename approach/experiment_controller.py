@@ -268,7 +268,7 @@ def prediction(embedding, datasetname, size_subgraph, emb_train, all_triples_set
             fin_score_relation_at10.append(-100)
             fin_score_relation_atMRR.append(-100)
 
-    path = f"approach/scoreData/{datasetname}_{n_split}/{embedding}/prediction_score_subgraphs2_{size_subgraph}.csv"
+    path = f"approach/scoreData/{datasetname}_{n_split}/{embedding}/prediction_score_subgraphs_{size_subgraph}.csv"
     c = open(f'{path}', "w")
     writer = csv.writer(c)
     data = ['subgraph','Tail Hit @ 1','Tail Hit @ 5','Tail Hit @ 10','Tail MRR','Relation Hit @ 1','Relation Hit @ 5','Relation Hit @ 10','Relation MRR']
@@ -486,7 +486,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     lst_emb_r = list(range(alltriples.num_relations))
     bigcount = 0
     poss = alltriples.num_entities*alltriples.num_relations
-    limit = 1/2 * max( min(100,poss), min (int(sample*poss)//1, 1000) )
+    limit = 1/2 * max( min(100,poss), min (int(sample*poss)//1, 5000) )
     first = True
     while len(allset_u) < limit:
         relation = random.choice(lst_emb_r)
@@ -557,8 +557,8 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
             count += 1
             he_sc += torch.sum(rslt_u_score > tr).detach().numpy() + 1
             ta_sc += torch.sum(rslt_v_score > tr).detach().numpy() + 1
-        hRankNeg += ((he_sc / count)/len(models)) * poss
-        tRankNeg += ((ta_sc / count)/len(models)) * poss
+        hRankNeg += ((he_sc / len(allset_u))/len(models)) * poss
+        tRankNeg += ((ta_sc / len(allset_v))/len(models)) * poss
                    
         
     '''
