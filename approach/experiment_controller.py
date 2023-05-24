@@ -959,7 +959,7 @@ if __name__ == "__main__":
     ex = os.path.isfile(path)
     c = open(f'{path}', "a+")
     writer = csv.writer(c)
-    if ex:
+    if not ex:
         data = ['dataset','embedding','size subgraphs','nmb subgraphs','sib_time','prediction_time','triple_time','densest_time']
         writer.writerow(data)
     data = [args.dataset_name, args.embedding, size_subgraphs, n_subgraphs, tstamp_sib, tstamp_pre, tstamp_tpc, tstamp_den]
