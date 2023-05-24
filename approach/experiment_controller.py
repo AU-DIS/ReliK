@@ -486,9 +486,12 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     lst_emb_r = list(range(alltriples.num_relations))
     bigcount = 0
     poss = alltriples.num_entities*alltriples.num_relations
-    limit = 1/2 * max( min(100,poss), min (int(sample*poss)//1, 1500) )
+    max_limit = 1500
+    limit = 1/2 * max( min(100,poss), min (int(sample*poss)//1, max_limit) )
     first = True
+    count = 0
     while len(allset_u) < limit:
+        count += 1
         relation = random.choice(lst_emb_r)
         tail = random.choice(lst_emb)
         kg_neg_triple_tuple = (entity_to_id_map[u],relation,tail)
@@ -500,9 +503,13 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
             else:
                 rslt_torch_u = torch.cat((rslt_torch_u, torch.LongTensor([entity_to_id_map[u],relation,tail]).resize_(1,3)))
             allset_u.add(kg_neg_triple_tuple)
+        if count == max_limit*2:
+            break
 
+    count = 0
     first = True
     while len(allset_v) < limit:
+        count += 1
         relation = random.choice(lst_emb_r)
         head = random.choice(lst_emb)
         kg_neg_triple_tuple = (head,relation,entity_to_id_map[v])
@@ -514,6 +521,8 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
             else:
                 rslt_torch_v = torch.cat((rslt_torch_v, torch.LongTensor([head,relation,entity_to_id_map[v]]).resize_(1,3)))
             allset_v.add(kg_neg_triple_tuple)
+        if count == max_limit*2:
+            break
 
     #print(rslt_torch_v)
     allset = allset_u.union(allset_v)
