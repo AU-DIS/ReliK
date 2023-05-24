@@ -486,7 +486,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     lst_emb_r = list(range(alltriples.num_relations))
     bigcount = 0
     poss = alltriples.num_entities*alltriples.num_relations
-    max_limit = 1500
+    max_limit = 1000
     limit = 1/2 * max( min(100,poss), min (int(sample*poss)//1, max_limit) )
     first = True
     count = 0
