@@ -32,6 +32,21 @@ def makeTCPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedd
 
     return LP_test_score
 
+def naiveTripleCLassification(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples, model):
+    X_train_pos, X_test_pos, y_train_pos, y_test_pos, X_train_neg, X_test_neg, y_train_neg, y_test_neg = cla.prepareTrainTestDataSplit(LP_triples_pos, LP_triples_neg, emb_train_triples)
+    print(X_train_pos)
+    X_train_pos = torch.from_numpy(X_train_pos)
+    X_test_pos = torch.from_numpy(X_test_pos)
+    X_train_neg = torch.from_numpy(X_train_neg)
+    X_test_neg = torch.from_numpy(X_test_neg)
+
+    comp_score_pos = model.score_hrt(X_train_pos)
+    comp_score_neg = model.score_hrt(X_train_pos)
+
+    torch.min()
+
+
+
 def grabAllKFold(datasetname: str, n_split: int):
     all_triples, all_triples_set, entity_to_id_map, relation_to_id_map, test_triples, validation_triples = emb.getDataFromPykeen(datasetname=datasetname)
     full_dataset = torch.cat((all_triples, test_triples.mapped_triples, validation_triples.mapped_triples))
@@ -84,7 +99,7 @@ def KFoldNegGen(datasetname: str, n_split: int, all_triples_set, LP_triples_pos,
             LP_triples_neg.append(neg_triples)
     return LP_triples_neg
 
-def DoGlobalSiblingScore(embedding, datasetname, n_split, size_subgraph, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample):
+def DoGlobalSiblingScore(embedding, datasetname, n_split, size_subgraph, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample, heur):
     df = pd.DataFrame(full_graph.triples, columns=['subject', 'predicate', 'object'])
     M = nx.MultiDiGraph()
 
@@ -108,7 +123,7 @@ def DoGlobalSiblingScore(embedding, datasetname, n_split, size_subgraph, models,
         sib_sum = 0
         for u,v in nx.DiGraph(M).subgraph(subgraph).edges():
             #print(f'{u} and {v}')
-            w = binomial(u, v, M, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample, datasetname)
+            w = heur(u, v, M, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample, datasetname)
             count += 1
             sib_sum += w
 
@@ -127,7 +142,7 @@ def DoGlobalSiblingScore(embedding, datasetname, n_split, size_subgraph, models,
         writer.writerow(data)
     c.close()
 
-def classifierExp(embedding, datasetname, size_subgraph, LP_triples_pos,  LP_triples_neg, entity2embedding, relation2embedding, emb_train, n_split):
+def classifierExp(embedding, datasetname, size_subgraph, LP_triples_pos,  LP_triples_neg, entity2embedding, relation2embedding, emb_train, n_split, models):
     subgraphs = list[set[str]]()
     
     with open(f"approach/KFold/{datasetname}_{n_split}_fold/subgraphs_{size_subgraph}.csv", "r") as f:
@@ -142,6 +157,8 @@ def classifierExp(embedding, datasetname, size_subgraph, LP_triples_pos,  LP_tri
     for i in range(n_split):
         LP_test_score = makeTCPart(LP_triples_pos[i],  LP_triples_neg[i], entity2embedding, relation2embedding, subgraphs, emb_train[i])
         score_cla.append(LP_test_score)
+        #naiveTripleCLassification(LP_triples_pos[i],  LP_triples_neg[i], entity2embedding, relation2embedding, subgraphs, emb_train[i], models[i])
+        #quit()
 
     fin_score_cla = []
     for i in range(len(score_cla[0])):
@@ -492,7 +509,6 @@ def getk_SiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], 
     for _ in range(len(models)):
         HeadModelRank.append(dict())
         TailModelRank.append(dict())
-
     first_u = True
     first_v = True
     #for entstr in list(subgraphs[0]):
@@ -511,12 +527,12 @@ def getk_SiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], 
             for ent_v in u_hop:
                 kg_neg_triple_tuple = (entity_to_id_map[ent_v],rel,ent)
                 if kg_neg_triple_tuple not in all_triples_set:
-                    if first_u:
-                        first_u = False
-                        rslt_torch_u = torch.LongTensor([entity_to_id_map[ent_v],rel,tail])
-                        rslt_torch_u = rslt_torch_u.resize_(1,3)
+                    if first_v:
+                        first_v = False
+                        rslt_torch_v = torch.LongTensor([entity_to_id_map[ent_v],rel,tail])
+                        rslt_torch_v = rslt_torch_v.resize_(1,3)
                     else:
-                        rslt_torch_u = torch.cat((rslt_torch_u, torch.LongTensor([entity_to_id_map[ent_v],rel,ent]).resize_(1,3)))
+                        rslt_torch_v = torch.cat((rslt_torch_v, torch.LongTensor([entity_to_id_map[ent_v],rel,ent]).resize_(1,3)))
 
     first = True
     for tp in list(existing):
@@ -1164,6 +1180,9 @@ if __name__ == "__main__":
             ratio = 0.1
         if heuristic == 'lower':
             heuristic = lower_bound
+        if heuristic == 'getk_SiblingScore':
+            print('hi')
+            heuristic = getk_SiblingScore
     else:
         heuristic = binomial
         ratio = 0.1
@@ -1185,7 +1204,7 @@ if __name__ == "__main__":
     '''if torch.has_mps:
         device = 'mps'''
     device = 'cpu'
-
+    #print(heuristic)
     path = f"approach/scoreData/{args.dataset_name}_{nmb_KFold}/{args.embedding}"
     isExist = os.path.exists(path)
     if not isExist:
@@ -1223,7 +1242,7 @@ if __name__ == "__main__":
     if 'siblings' in task_list:
         print('start with siblings')
         start = timeit.default_timer()
-        DoGlobalSiblingScore(args.embedding, args.dataset_name, nmb_KFold, size_subgraphs, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, ratio)
+        DoGlobalSiblingScore(args.embedding, args.dataset_name, nmb_KFold, size_subgraphs, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, ratio, heuristic)
         end = timeit.default_timer()
         print('end with siblings')
         tstamp_sib = end - start
@@ -1236,8 +1255,14 @@ if __name__ == "__main__":
         tstamp_pre = end - start
     if 'triple' in task_list:
         print('start with triple')
+        if args.embedding == 'TransE':
+            entity2embedding, relation2embedding = emb.createEmbeddingMaps_TransE(models[0], emb_train_triples[0])
+        elif args.embedding == 'DistMult':
+            entity2embedding, relation2embedding = emb.createEmbeddingMaps_DistMult(models[0], emb_train_triples[0])
+        else:
+            entity2embedding, relation2embedding = emb.createEmbeddingMaps_DistMult(models[0], emb_train_triples[0])
         start = timeit.default_timer()
-        classifierExp(args.embedding, args.dataset_name, size_subgraphs, LP_triples_pos,  LP_triples_neg, entity_to_id_map, relation_to_id_map, emb_train_triples, nmb_KFold)
+        classifierExp(args.embedding, args.dataset_name, size_subgraphs, LP_triples_pos,  LP_triples_neg, entity2embedding, relation2embedding, emb_train_triples, nmb_KFold, models)
         end = timeit.default_timer()
         print('end with triple')
         tstamp_tpc = end - start

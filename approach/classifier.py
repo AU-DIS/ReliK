@@ -19,6 +19,8 @@ def trainClassifier(X_train, Y_train, entity2embedding, relation2embedding, type
     for tp in X_train:
         X_train_emb.append([entity2embedding[tp[0]],relation2embedding[tp[1]],entity2embedding[tp[2]]])
     X_train_emb = np.array(X_train_emb)
+    nsamples, nx, ny = X_train_emb.shape
+    X_train_emb = X_train_emb.reshape((nsamples,nx*ny))
     clf.fit(X_train_emb, Y_train)
     return clf
 
@@ -71,6 +73,9 @@ def testClassifierSubgraphs(classifier, X_test, y_test, entity2embedding, relati
         if len(X_test_emb) == 1:
             LP_test_score.append(-100)
             continue
+        X_test_emb = np.array(X_test_emb)
+        nsamples, nx, ny = X_test_emb.shape
+        X_test_emb = X_test_emb.reshape((nsamples,nx*ny))
         LP_test_score.append(classifier.score(X_test_emb, y_test_emb))
         bigcount += 1
         if bigcount % 100 == 0:
