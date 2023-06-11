@@ -1255,12 +1255,7 @@ if __name__ == "__main__":
         tstamp_pre = end - start
     if 'triple' in task_list:
         print('start with triple')
-        if args.embedding == 'TransE':
-            entity2embedding, relation2embedding = emb.createEmbeddingMaps_TransE(models[0], emb_train_triples[0])
-        elif args.embedding == 'DistMult':
-            entity2embedding, relation2embedding = emb.createEmbeddingMaps_DistMult(models[0], emb_train_triples[0])
-        else:
-            entity2embedding, relation2embedding = emb.createEmbeddingMaps_DistMult(models[0], emb_train_triples[0])
+        entity2embedding, relation2embedding = emb.createEmbeddingMaps_DistMult(models[0], emb_train_triples[0])
         start = timeit.default_timer()
         classifierExp(args.embedding, args.dataset_name, size_subgraphs, LP_triples_pos,  LP_triples_neg, entity2embedding, relation2embedding, emb_train_triples, nmb_KFold, models)
         end = timeit.default_timer()
