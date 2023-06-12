@@ -70,22 +70,22 @@ def naiveTripleCLassification(LP_triples_pos, LP_triples_neg, entity_to_id_map, 
     first = True
     for subgraph in subgraphs:
         for tp in X_test_pos:
-            if ((emb_train_triples.entity_id_to_label[tp[0][0][0].item()] in subgraph) and (emb_train_triples.entity_id_to_label[tp[0][0][2].item()] in subgraph)):
+            if ((emb_train_triples.entity_id_to_label[tp[0][0].item()] in subgraph) and (emb_train_triples.entity_id_to_label[tp[0][2].item()] in subgraph)):
                 if first:
                     first = False
-                    rslt_torch_pos = tp[0][0]
+                    rslt_torch_pos = tp[0]
                     rslt_torch_pos = rslt_torch_pos.resize_(1,3)
                 else:
-                    rslt_torch_pos = torch.cat((rslt_torch_pos, tp[0][0].resize_(1,3)))
+                    rslt_torch_pos = torch.cat((rslt_torch_pos, tp[0].resize_(1,3)))
         first = True
         for tp in X_test_neg:
-            if ((emb_train_triples.entity_id_to_label[tp[0][0][0].item()] in subgraph) and (emb_train_triples.entity_id_to_label[tp[0][0][2].item()] in subgraph)):
+            if ((emb_train_triples.entity_id_to_label[tp[0][0].item()] in subgraph) and (emb_train_triples.entity_id_to_label[tp[0][2].item()] in subgraph)):
                 if first:
                     first = False
-                    rslt_torch_neg = tp[0][0]
+                    rslt_torch_neg = tp[0]
                     rslt_torch_neg = rslt_torch_neg.resize_(1,3)
                 else:
-                    rslt_torch_neg = torch.cat((rslt_torch_neg, tp[0][0].resize_(1,3)))
+                    rslt_torch_neg = torch.cat((rslt_torch_neg, tp[0].resize_(1,3)))
     
         
         comp_score_pos = model.score_hrt(rslt_torch_pos)
@@ -93,10 +93,7 @@ def naiveTripleCLassification(LP_triples_pos, LP_triples_neg, entity_to_id_map, 
             
         pos_low = torch.sum(comp_score_pos < thresh).cpu().detach().numpy()
         neg_hig = torch.sum(comp_score_neg > thresh).cpu().detach().numpy()
-        print(pos_low)
-        print(neg_hig)
-        print(rslt_torch_pos.shape)
-        print(rslt_torch_neg.shape)
+
         LP_test_score.append(rslt_torch_pos.shape[0]+rslt_torch_neg.shape[0]-(pos_low+neg_hig)/(rslt_torch_pos.shape[0]+rslt_torch_neg.shape[0]))
         #print(rslt_torch_pos.shape)
         #print(rslt_torch_neg.shape)

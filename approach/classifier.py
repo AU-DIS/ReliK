@@ -51,26 +51,21 @@ def prepareTrainTestDataSplit(pos_triples, neg_triples, triples, entity_to_id_ma
     '''
     creating data for classifier training/testing, with labels from the triples
     '''
-    ds_pos = [] 
+    ds_pos_X = []
+    ds_pos_y = []
+    ds_neg_X = []
+    ds_neg_y = [] 
     ds_neg = []
     ds_all = []
     for t in pos_triples:
-        ds_pos.append([torch.tensor([[t[0],t[1],t[2]]]), 1])
+        ds_pos_X.append(torch.tensor([[t[0],t[1],t[2]]]))
+        ds_pos_y.append(1)
     for t in neg_triples:
-        ds_neg.append([torch.tensor([[t[0],t[1],t[2]]]), 0])
-    ds_all = ds_pos + ds_neg
-
-    dataset_pos = np.array(ds_pos)
-
-    ds_pos_X = dataset_pos[:, :-1]
-    ds_pos_y = dataset_pos[:, -1]
+        ds_neg_X.append(torch.tensor([[t[0],t[1],t[2]]]))
+        ds_neg_y.append(0)
+    #ds_all = ds_pos + ds_neg
 
     X_train_pos, X_test_pos, y_train_pos, y_test_pos = train_test_split(ds_pos_X, ds_pos_y, test_size=test_size)
-
-    dataset_neg = np.array(ds_neg)
-
-    ds_neg_X = dataset_neg[:, :-1]
-    ds_neg_y = dataset_neg[:, -1]
 
     X_train_neg, X_test_neg, y_train_neg, y_test_neg = train_test_split(ds_neg_X, ds_neg_y, test_size=test_size)
     return X_train_pos, X_test_pos, y_train_pos, y_test_pos, X_train_neg, X_test_neg, y_train_neg, y_test_neg
