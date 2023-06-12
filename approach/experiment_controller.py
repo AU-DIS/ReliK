@@ -32,19 +32,78 @@ def makeTCPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedd
 
     return LP_test_score
 
-def naiveTripleCLassification(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples, model):
-    X_train_pos, X_test_pos, y_train_pos, y_test_pos, X_train_neg, X_test_neg, y_train_neg, y_test_neg = cla.prepareTrainTestDataSplit(LP_triples_pos, LP_triples_neg, emb_train_triples)
-    print(X_train_pos)
-    X_train_pos = torch.from_numpy(X_train_pos)
-    X_test_pos = torch.from_numpy(X_test_pos)
-    X_train_neg = torch.from_numpy(X_train_neg)
-    X_test_neg = torch.from_numpy(X_test_neg)
+def naiveTripleCLassification(LP_triples_pos, LP_triples_neg, entity_to_id_map, relation_to_id_map, subgraphs, emb_train_triples, model):
+    LP_test_score = []
+    X_train_pos, X_test_pos, y_train_pos, y_test_pos, X_train_neg, X_test_neg, y_train_neg, y_test_neg = cla.prepareTrainTestDataSplit(LP_triples_pos, LP_triples_neg, emb_train_triples, entity_to_id_map, relation_to_id_map)
+    first = True
+    for i in range(len(X_train_pos)):
+        if first:
+            first = False
+            rslt_torch_pos = X_train_pos[i][0]
+            rslt_torch_pos = rslt_torch_pos.resize_(1,3)
+            
+        else:
+            rslt_torch_pos = torch.cat((rslt_torch_pos,  X_train_pos[i][0].resize_(1,3)))
+    first = True
+    for i in range(len(X_train_neg)):
+        if first:
+            first = False
+            rslt_torch_neg = X_train_neg[i][0]
+            rslt_torch_neg = rslt_torch_neg.resize_(1,3)
+            
+        else:
+            rslt_torch_neg = torch.cat((rslt_torch_neg,  X_train_neg[i][0].resize_(1,3)))
+    comp_score_pos = model.score_hrt(rslt_torch_pos)
+    comp_score_neg = model.score_hrt(rslt_torch_neg)
 
-    comp_score_pos = model.score_hrt(X_train_pos)
-    comp_score_neg = model.score_hrt(X_train_pos)
-
-    torch.min()
-
+    first = True
+    for i in range(torch.sum(comp_score_neg > torch.min(comp_score_pos)).cpu().detach().numpy()):
+        k = torch.topk(comp_score_neg, i+1, dim=-2)
+        pos_low = torch.sum(comp_score_pos < k.values[i]).cpu().detach().numpy()
+        neg_hig = torch.sum(comp_score_neg > k.values[i]).cpu().detach().numpy()
+        if first:
+            min_false = pos_low + neg_hig
+            first = False
+        if min_false > neg_hig + pos_low:
+            thresh = k.values[i]
+            min_false = neg_hig + pos_low
+    first = True
+    for subgraph in subgraphs:
+        for tp in X_test_pos:
+            if ((emb_train_triples.entity_id_to_label[tp[0][0][0].item()] in subgraph) and (emb_train_triples.entity_id_to_label[tp[0][0][2].item()] in subgraph)):
+                if first:
+                    first = False
+                    rslt_torch_pos = tp[0][0]
+                    rslt_torch_pos = rslt_torch_pos.resize_(1,3)
+                else:
+                    rslt_torch_pos = torch.cat((rslt_torch_pos, tp[0][0].resize_(1,3)))
+        first = True
+        for tp in X_test_neg:
+            if ((emb_train_triples.entity_id_to_label[tp[0][0][0].item()] in subgraph) and (emb_train_triples.entity_id_to_label[tp[0][0][2].item()] in subgraph)):
+                if first:
+                    first = False
+                    rslt_torch_neg = tp[0][0]
+                    rslt_torch_neg = rslt_torch_neg.resize_(1,3)
+                else:
+                    rslt_torch_neg = torch.cat((rslt_torch_neg, tp[0][0].resize_(1,3)))
+    
+        
+        comp_score_pos = model.score_hrt(rslt_torch_pos)
+        comp_score_neg = model.score_hrt(rslt_torch_neg)
+            
+        pos_low = torch.sum(comp_score_pos < thresh).cpu().detach().numpy()
+        neg_hig = torch.sum(comp_score_neg > thresh).cpu().detach().numpy()
+        print(pos_low)
+        print(neg_hig)
+        print(rslt_torch_pos.shape)
+        print(rslt_torch_neg.shape)
+        LP_test_score.append(rslt_torch_pos.shape[0]+rslt_torch_neg.shape[0]-(pos_low+neg_hig)/(rslt_torch_pos.shape[0]+rslt_torch_neg.shape[0]))
+        #print(rslt_torch_pos.shape)
+        #print(rslt_torch_neg.shape)
+        #print(pos_low)
+        #print(neg_hig)
+        #print((2*rslt_torch_pos.shape[0]-(pos_low+neg_hig))/(2*rslt_torch_pos.shape[0]))
+    return LP_test_score
 
 
 def grabAllKFold(datasetname: str, n_split: int):
@@ -142,7 +201,7 @@ def DoGlobalSiblingScore(embedding, datasetname, n_split, size_subgraph, models,
         writer.writerow(data)
     c.close()
 
-def classifierExp(embedding, datasetname, size_subgraph, LP_triples_pos,  LP_triples_neg, entity2embedding, relation2embedding, emb_train, n_split, models):
+def classifierExp(embedding, datasetname, size_subgraph, LP_triples_pos,  LP_triples_neg, entity2embedding, relation2embedding, emb_train, n_split, models, entity_to_id_map, relation_to_id_map):
     subgraphs = list[set[str]]()
     
     with open(f"approach/KFold/{datasetname}_{n_split}_fold/subgraphs_{size_subgraph}.csv", "r") as f:
@@ -155,10 +214,10 @@ def classifierExp(embedding, datasetname, size_subgraph, LP_triples_pos,  LP_tri
     
     score_cla = []
     for i in range(n_split):
-        LP_test_score = makeTCPart(LP_triples_pos[i],  LP_triples_neg[i], entity2embedding, relation2embedding, subgraphs, emb_train[i])
+        #LP_test_score = makeTCPart(LP_triples_pos[i],  LP_triples_neg[i], entity2embedding, relation2embedding, subgraphs, emb_train[i])
+        #score_cla.append(LP_test_score)
+        LP_test_score = naiveTripleCLassification(LP_triples_pos[i],  LP_triples_neg[i], entity_to_id_map, relation_to_id_map, subgraphs, emb_train[i], models[i])
         score_cla.append(LP_test_score)
-        #naiveTripleCLassification(LP_triples_pos[i],  LP_triples_neg[i], entity2embedding, relation2embedding, subgraphs, emb_train[i], models[i])
-        #quit()
 
     fin_score_cla = []
     for i in range(len(score_cla[0])):
@@ -1257,7 +1316,7 @@ if __name__ == "__main__":
         print('start with triple')
         entity2embedding, relation2embedding = emb.createEmbeddingMaps_DistMult(models[0], emb_train_triples[0])
         start = timeit.default_timer()
-        classifierExp(args.embedding, args.dataset_name, size_subgraphs, LP_triples_pos,  LP_triples_neg, entity2embedding, relation2embedding, emb_train_triples, nmb_KFold, models)
+        classifierExp(args.embedding, args.dataset_name, size_subgraphs, LP_triples_pos,  LP_triples_neg, entity2embedding, relation2embedding, emb_train_triples, nmb_KFold, models, entity_to_id_map, relation_to_id_map,)
         end = timeit.default_timer()
         print('end with triple')
         tstamp_tpc = end - start

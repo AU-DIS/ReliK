@@ -4,6 +4,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
+import torch
 
 def trainClassifier(X_train, Y_train, entity2embedding, relation2embedding, type='LogisticRegression'):
     '''
@@ -45,6 +46,34 @@ def prepareTrainTestData(pos_triples, neg_triples, triples, test_size=0.33):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
     return X_train, X_test, y_train, y_test
+
+def prepareTrainTestDataSplit(pos_triples, neg_triples, triples, entity_to_id_map, relation_to_id_map, test_size=0.33):
+    '''
+    creating data for classifier training/testing, with labels from the triples
+    '''
+    ds_pos = [] 
+    ds_neg = []
+    ds_all = []
+    for t in pos_triples:
+        ds_pos.append([torch.tensor([[t[0],t[1],t[2]]]), 1])
+    for t in neg_triples:
+        ds_neg.append([torch.tensor([[t[0],t[1],t[2]]]), 0])
+    ds_all = ds_pos + ds_neg
+
+    dataset_pos = np.array(ds_pos)
+
+    ds_pos_X = dataset_pos[:, :-1]
+    ds_pos_y = dataset_pos[:, -1]
+
+    X_train_pos, X_test_pos, y_train_pos, y_test_pos = train_test_split(ds_pos_X, ds_pos_y, test_size=test_size)
+
+    dataset_neg = np.array(ds_neg)
+
+    ds_neg_X = dataset_neg[:, :-1]
+    ds_neg_y = dataset_neg[:, -1]
+
+    X_train_neg, X_test_neg, y_train_neg, y_test_neg = train_test_split(ds_neg_X, ds_neg_y, test_size=test_size)
+    return X_train_pos, X_test_pos, y_train_pos, y_test_pos, X_train_neg, X_test_neg, y_train_neg, y_test_neg
 
 def testClassifier(classifier, X_test, y_test, entity2embedding, relation2embedding):
     LP_test_score = []
