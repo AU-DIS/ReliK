@@ -94,7 +94,7 @@ def naiveTripleCLassification(LP_triples_pos, LP_triples_neg, entity_to_id_map, 
         pos_low = torch.sum(comp_score_pos < thresh).cpu().detach().numpy()
         neg_hig = torch.sum(comp_score_neg > thresh).cpu().detach().numpy()
 
-        LP_test_score.append(rslt_torch_pos.shape[0]+rslt_torch_neg.shape[0]-(pos_low+neg_hig)/(rslt_torch_pos.shape[0]+rslt_torch_neg.shape[0]))
+        LP_test_score.append((rslt_torch_pos.shape[0]+rslt_torch_neg.shape[0]-(pos_low+neg_hig))/(rslt_torch_pos.shape[0]+rslt_torch_neg.shape[0]))
         #print(rslt_torch_pos.shape)
         #print(rslt_torch_neg.shape)
         #print(pos_low)
