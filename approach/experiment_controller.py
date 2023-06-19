@@ -351,6 +351,77 @@ def prediction(embedding, datasetname, size_subgraph, emb_train, all_triples_set
         writer.writerow(data)
     c.close()
 
+def prediction_head(embedding, datasetname, size_subgraph, emb_train, all_triples_set, n_split):
+    subgraphs = dh.loadSubGraphs(f"approach/KFold/{args.dataset_name}_{nmb_KFold}_fold", size_subgraphs)
+    if len(subgraphs) < n_subgraphs:
+        subgraphs_new = dh.createSubGraphs(all_triples, entity_to_id_map, relation_to_id_map, size_of_graphs=size_subgraphs, number_of_graphs=(n_subgraphs-len(subgraphs)))
+        dh.storeSubGraphs(f"approach/KFold/{args.dataset_name}_{nmb_KFold}_fold", subgraphs_new)
+        subgraphs = subgraphs + subgraphs_new
+    if len(subgraphs) > n_subgraphs:
+        subgraphs = subgraphs[:n_subgraphs]
+
+    fin_score_head_at1 = []
+    fin_score_head_at5 = []
+    fin_score_head_at10 = []
+    fin_score_head_atMRR = []
+
+    for subgraph in subgraphs:
+        model_head_sum_at_1 = []
+        model_head_sum_at_5 = []
+        model_head_sum_at_10 = []
+        model_head_sum_for_MRR = []
+        for i in range(n_split):
+            head_sum_at_1 = 0
+            head_sum_at_5 = 0
+            head_sum_at_10 = 0
+            head_sum_for_MRR = 0
+            counter_of_test_tp = 0
+            for tp in LP_triples_pos[i]:
+                if (emb_train[i].entity_id_to_label[tp[0]] in subgraph) and (emb_train[0].entity_id_to_label[tp[2]] in subgraph):
+                    counter_of_test_tp += 1
+                    ten = torch.tensor([[tp[0],tp[1],tp[2]]])
+                    comp_score = models[i].score_hrt(ten)
+
+                    list_head = torch.tensor([i for i in range(emb_train[0].num_entities) if (tp[0],tp[1], i) not in all_triples_set ])
+
+                    head_rank = torch.sum(models[i].score_h(ten[0][1:].resize_(1,2), heads=list_head) > comp_score).cpu().detach().numpy() + 1
+
+                    if head_rank <= 1:
+                        head_sum_at_1 += 1
+                        head_sum_at_5 += 1
+                        head_sum_at_10 += 1
+                    elif head_rank <= 5:
+                        head_sum_at_5 += 1
+                        head_sum_at_10 += 1
+                    elif head_rank <= 10:
+                        head_sum_at_10 += 1
+                    head_sum_for_MRR += 1/head_rank
+            if counter_of_test_tp > 0:
+                model_head_sum_at_1.append(head_sum_at_1/counter_of_test_tp)
+                model_head_sum_at_5.append(head_sum_at_5/counter_of_test_tp)
+                model_head_sum_at_10.append(head_sum_at_10/counter_of_test_tp)
+                model_head_sum_for_MRR.append(head_sum_for_MRR/counter_of_test_tp)
+        if len(model_relation_sum_at_1) > 0:
+            fin_score_head_at1.append(np.mean(model_head_sum_at_1))
+            fin_score_head_at5.append(np.mean(model_head_sum_at_5))
+            fin_score_head_at10.append(np.mean(model_head_sum_at_10))
+            fin_score_head_atMRR.append(np.mean(model_head_sum_for_MRR))
+        else:
+            fin_score_head_at1.append(-100)
+            fin_score_head_at5.append(-100)
+            fin_score_head_at10.append(-100)
+            fin_score_head_atMRR.append(-100)
+
+    path = f"approach/scoreData/{datasetname}_{n_split}/{embedding}/prediction_head_score_subgraphs_{size_subgraph}.csv"
+    c = open(f'{path}', "w")
+    writer = csv.writer(c)
+    data = ['subgraph','head Hit @ 1','head Hit @ 5','head Hit @ 10','head MRR']
+    writer.writerow(data)
+    for j in range(len(fin_score_head_at1)):
+        data = [j, fin_score_head_at1[j], fin_score_head_at5[j], fin_score_head_at10[j], fin_score_head_atMRR[j]]
+        writer.writerow(data)
+    c.close()
+
 def storeTriplesYago(path, triples):
     with open(f"{path}.csv", "w") as f:
         wr = csv.writer(f)
@@ -1305,7 +1376,8 @@ if __name__ == "__main__":
     if 'prediction' in task_list:
         print('start with prediction')
         start = timeit.default_timer()
-        prediction(args.embedding, args.dataset_name, size_subgraphs, emb_train_triples, all_triples_set, nmb_KFold)
+        #prediction(args.embedding, args.dataset_name, size_subgraphs, emb_train_triples, all_triples_set, nmb_KFold)
+        prediction_head(args.embedding, args.dataset_name, size_subgraphs, emb_train_triples, all_triples_set, nmb_KFold)
         end = timeit.default_timer()
         print('end with prediction')
         tstamp_pre = end - start
