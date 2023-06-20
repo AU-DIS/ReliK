@@ -401,7 +401,7 @@ def prediction_head(embedding, datasetname, size_subgraph, emb_train, all_triple
                 model_head_sum_at_5.append(head_sum_at_5/counter_of_test_tp)
                 model_head_sum_at_10.append(head_sum_at_10/counter_of_test_tp)
                 model_head_sum_for_MRR.append(head_sum_for_MRR/counter_of_test_tp)
-        if len(model_relation_sum_at_1) > 0:
+        if len(model_head_sum_at_1) > 0:
             fin_score_head_at1.append(np.mean(model_head_sum_at_1))
             fin_score_head_at5.append(np.mean(model_head_sum_at_5))
             fin_score_head_at10.append(np.mean(model_head_sum_at_10))
