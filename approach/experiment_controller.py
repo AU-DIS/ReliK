@@ -229,7 +229,7 @@ def classifierExp(embedding, datasetname, size_subgraph, LP_triples_pos,  LP_tri
         else:
             fin_score_cla.append(sumcla/n_split)
 
-    path = f"approach/scoreData/{datasetname}_{n_split}/{embedding}/classifier_score_subgraphs_{size_subgraph}.csv"
+    path = f"approach/scoreData/{datasetname}_{n_split}/{embedding}/classifier_score_subgraphs_{size_subgraph}_{classifier}.csv"
     c = open(f'{path}', "w")
     writer = csv.writer(c)
     data = ['subgraph','classifier']
