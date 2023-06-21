@@ -25,9 +25,9 @@ import numpy as np
 
 import os
 
-def makeTCPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples):
+def makeTCPart(LP_triples_pos, LP_triples_neg, entity2embedding, relation2embedding, subgraphs, emb_train_triples, classifier):
     X_train, X_test, y_train, y_test = cla.prepareTrainTestData(LP_triples_pos, LP_triples_neg, emb_train_triples)
-    clf = cla.trainClassifier(X_train, y_train, entity2embedding, relation2embedding)
+    clf = cla.trainClassifier(X_train, y_train, entity2embedding, relation2embedding, type=classifier)
     LP_test_score = cla.testClassifierSubgraphs(clf, X_test, y_test, entity2embedding, relation2embedding, subgraphs)
 
     return LP_test_score
@@ -198,7 +198,7 @@ def DoGlobalSiblingScore(embedding, datasetname, n_split, size_subgraph, models,
         writer.writerow(data)
     c.close()
 
-def classifierExp(embedding, datasetname, size_subgraph, LP_triples_pos,  LP_triples_neg, entity2embedding, relation2embedding, emb_train, n_split, models, entity_to_id_map, relation_to_id_map):
+def classifierExp(embedding, datasetname, size_subgraph, LP_triples_pos,  LP_triples_neg, entity2embedding, relation2embedding, emb_train, n_split, models, entity_to_id_map, relation_to_id_map, classifier):
     subgraphs = list[set[str]]()
     
     with open(f"approach/KFold/{datasetname}_{n_split}_fold/subgraphs_{size_subgraph}.csv", "r") as f:
@@ -211,9 +211,9 @@ def classifierExp(embedding, datasetname, size_subgraph, LP_triples_pos,  LP_tri
     
     score_cla = []
     for i in range(n_split):
-        #LP_test_score = makeTCPart(LP_triples_pos[i],  LP_triples_neg[i], entity2embedding, relation2embedding, subgraphs, emb_train[i])
+        LP_test_score = makeTCPart(LP_triples_pos[i],  LP_triples_neg[i], entity2embedding, relation2embedding, subgraphs, emb_train[i], classifier)
         #score_cla.append(LP_test_score)
-        LP_test_score = naiveTripleCLassification(LP_triples_pos[i],  LP_triples_neg[i], entity_to_id_map, relation_to_id_map, subgraphs, emb_train[i], models[i])
+        #LP_test_score = naiveTripleCLassification(LP_triples_pos[i],  LP_triples_neg[i], entity_to_id_map, relation_to_id_map, subgraphs, emb_train[i], models[i])
         score_cla.append(LP_test_score)
 
     fin_score_cla = []
@@ -382,8 +382,7 @@ def prediction_head(embedding, datasetname, size_subgraph, emb_train, all_triple
                     ten = torch.tensor([[tp[0],tp[1],tp[2]]])
                     comp_score = models[i].score_hrt(ten)
 
-                    list_head = torch.tensor([i for i in range(emb_train[0].num_entities) if (tp[0],tp[1], i) not in all_triples_set ])
-
+                    list_head = torch.tensor([i for i in range(emb_train[0].num_entities) if (i,tp[1], tp[2]) not in all_triples_set ])
                     head_rank = torch.sum(models[i].score_h(ten[0][1:].resize_(1,2), heads=list_head) > comp_score).cpu().detach().numpy() + 1
 
                     if head_rank <= 1:
@@ -1253,6 +1252,7 @@ if __name__ == "__main__":
     parser.add_argument('-st','--setup', dest='setup',action='store_true' ,help='if set, just setup and train embedding, subgraphs, neg-triples')
     parser.add_argument('-heur','--heuristic', dest='heuristic', type=str, help='which heuristic should be used in the case of dense subgraph task')
     parser.add_argument('-r','--ratio', dest='ratio', type=str, help='how much should be sampled for binomial', default=0.1)
+    parser.add_argument('-c','--class', dest='classifier', type=str, help='classifier type')
     args = parser.parse_args()
 
     nmb_KFold: int = 5
@@ -1328,6 +1328,10 @@ if __name__ == "__main__":
     if args.dataset_name == 'FB15k':
         device = 'cuda:6'
 
+    if not args.classifier:
+        classifier = 'LogisticRegression'
+    else:
+        classifier = args.classifier
     '''if torch.has_mps:
         device = 'mps'''
     device = 'cpu'
@@ -1385,7 +1389,7 @@ if __name__ == "__main__":
         print('start with triple')
         entity2embedding, relation2embedding = emb.createEmbeddingMaps_DistMult(models[0], emb_train_triples[0])
         start = timeit.default_timer()
-        classifierExp(args.embedding, args.dataset_name, size_subgraphs, LP_triples_pos,  LP_triples_neg, entity2embedding, relation2embedding, emb_train_triples, nmb_KFold, models, entity_to_id_map, relation_to_id_map,)
+        classifierExp(args.embedding, args.dataset_name, size_subgraphs, LP_triples_pos,  LP_triples_neg, entity2embedding, relation2embedding, emb_train_triples, nmb_KFold, models, entity_to_id_map, relation_to_id_map, classifier)
         end = timeit.default_timer()
         print('end with triple')
         tstamp_tpc = end - start

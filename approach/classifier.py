@@ -4,6 +4,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 import torch
 
 def trainClassifier(X_train, Y_train, entity2embedding, relation2embedding, type='LogisticRegression'):
@@ -16,6 +17,10 @@ def trainClassifier(X_train, Y_train, entity2embedding, relation2embedding, type
         clf = LogisticRegression(max_iter=5000)
     elif type == 'LinearRegression':
         clf = LinearRegression()
+    elif type == 'gboost':
+        clf = GradientBoostingClassifier()
+    elif type == 'randomForest':
+        clf = RandomForestClassifier()
     X_train_emb = []
     for tp in X_train:
         X_train_emb.append([entity2embedding[tp[0]],relation2embedding[tp[1]],entity2embedding[tp[2]]])
