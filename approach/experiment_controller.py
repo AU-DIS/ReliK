@@ -173,28 +173,39 @@ def DoGlobalSiblingScore(embedding, datasetname, n_split, size_subgraph, models,
         M.add_edge(t[0], t[2], label = t[1])
 
     model_siblings_score = []
+    model_siblings_score_h = []
+    model_siblings_score_t = []
     tracker = 0
     for subgraph in subgraphs:
         count = 0
         sib_sum = 0
+        sib_sum_h = 0
+        sib_sum_t = 0
         for u,v in nx.DiGraph(M).subgraph(subgraph).edges():
             #print(f'{u} and {v}')
-            w = heur(u, v, M, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample, datasetname)
+            w, w1, w2 = heur(u, v, M, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample, datasetname)
             count += 1
             sib_sum += w
+            sib_sum_h += w1
+            sib_sum_t += w2
+        
 
         sib_sum = sib_sum/count
+        sib_sum_h = sib_sum_h/count
+        sib_sum_t = sib_sum_t/count
         model_siblings_score.append(sib_sum)
+        model_siblings_score_h.append(sib_sum_h)
+        model_siblings_score_t.append(sib_sum_t)
         tracker += 1
         if tracker % 10 == 0: print(f'have done {tracker} of {len(subgraphs)} in {embedding}')
 
     path = f"approach/scoreData/{datasetname}_{n_split}/{embedding}/siblings_score_subgraphs_{size_subgraph}.csv"
     c = open(f'{path}', "w")
     writer = csv.writer(c)
-    data = ['subgraph','siblings']
+    data = ['subgraph','siblings','sib h','sib t']
     writer.writerow(data)
     for j in range(len(model_siblings_score)):
-        data = [j, model_siblings_score[j]]
+        data = [j, model_siblings_score[j], model_siblings_score_h[j], model_siblings_score_t[j]]
         writer.writerow(data)
     c.close()
 
@@ -865,7 +876,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
                 neg = findingRankNegTail(part2,(head,relation),all_triples_set,tail) / len(models)
                 tRankNeg += (neg / len(v_comp)) * poss'''
     
-    return ( 1/hRankNeg + 1/tRankNeg )/2
+    return ( 1/hRankNeg + 1/tRankNeg )/2, 1/hRankNeg, 1/tRankNeg
 
 def k_binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, sample: float, dataset: str) -> float:
     
