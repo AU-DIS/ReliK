@@ -70,7 +70,7 @@ def naiveTripleCLassification(LP_triples_pos, LP_triples_neg, entity_to_id_map, 
     first = True
     for subgraph in subgraphs:
         for tp in X_test_pos:
-            if ((emb_train_triples.entity_id_to_label[tp[0][0].item()] in subgraph) and (emb_train_triples.entity_id_to_label[tp[0][2].item()] in subgraph)):
+            if ((emb_train_triples.entity_id_to_label[tp[0][0].item()] in subgraph) or (emb_train_triples.entity_id_to_label[tp[0][2].item()] in subgraph)):
                 if first:
                     first = False
                     rslt_torch_pos = tp[0]
@@ -79,7 +79,7 @@ def naiveTripleCLassification(LP_triples_pos, LP_triples_neg, entity_to_id_map, 
                     rslt_torch_pos = torch.cat((rslt_torch_pos, tp[0].resize_(1,3)))
         first = True
         for tp in X_test_neg:
-            if ((emb_train_triples.entity_id_to_label[tp[0][0].item()] in subgraph) and (emb_train_triples.entity_id_to_label[tp[0][2].item()] in subgraph)):
+            if ((emb_train_triples.entity_id_to_label[tp[0][0].item()] in subgraph) or (emb_train_triples.entity_id_to_label[tp[0][2].item()] in subgraph)):
                 if first:
                     first = False
                     rslt_torch_neg = tp[0]

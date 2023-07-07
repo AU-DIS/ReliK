@@ -91,7 +91,7 @@ def testClassifierSubgraphs(classifier, X_test, y_test, entity2embedding, relati
         y_test_emb = []
         index = 0
         for tp in X_test:
-            if ((tp[0] in subgraph) and (tp[2] in subgraph)):
+            if ((tp[0] in subgraph) or (tp[2] in subgraph)):
                 X_test_emb.append([entity2embedding[tp[0]],relation2embedding[tp[1]],entity2embedding[tp[2]]])
                 y_test_emb.append(y_test[index])
             index += 1
