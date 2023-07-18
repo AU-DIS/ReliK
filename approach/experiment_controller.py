@@ -703,7 +703,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     subgraph_list, labels, existing, count, ex_triples  = dh.getkHopneighbors(u,v,M)
     #print(entity_to_id_map)
     #subgraph_list, labels, existing, count, ex_triples  = dh.getkHopneighbors(entity_to_id_map[u],entity_to_id_map[v],M)
-    
+    print('Got Past hop neighbors')
     allset_uu = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
     allset_vv = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
     allset = allset_uu.union(allset_vv)
@@ -725,7 +725,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     limit = int(sample*poss)//1 #1/2 * max( min(100,poss), min (int(sample*poss)//1, int(sample*poss)//1) )#max_limit) )
     first = True
     count = 0
-    while len(allset_u) < len_uu*sample:
+    while len(allset_u) < min(len_uu*sample,1000):
         #count += 1
         relation = random.choice(lst_emb_r)
         tail = random.choice(lst_emb)
@@ -740,12 +740,12 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
             allset_u.add(kg_neg_triple_tuple)
         else:
             count += 1
-        if count == len_uu*sample:
+        if count == min(len_uu*sample,1000):
             break
 
     count = 0
     first = True
-    while len(allset_v) < len_vv*sample:
+    while len(allset_v) < min(len_vv*sample,1000):
         #count += 1
         relation = random.choice(lst_emb_r)
         head = random.choice(lst_emb)
@@ -760,7 +760,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
             allset_v.add(kg_neg_triple_tuple)
         else:
             count += 1
-        if count == len_vv*sample:
+        if count == min(len_vv*sample,1000):
             break
     print('HEYO')
     #print(rslt_torch_v)
