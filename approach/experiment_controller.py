@@ -703,7 +703,6 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     subgraph_list, labels, existing, count, ex_triples  = dh.getkHopneighbors(u,v,M)
     #print(entity_to_id_map)
     #subgraph_list, labels, existing, count, ex_triples  = dh.getkHopneighbors(entity_to_id_map[u],entity_to_id_map[v],M)
-    print('Got Past hop neighbors')
     allset_uu = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
     allset_vv = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
     allset = allset_uu.union(allset_vv)
@@ -762,7 +761,6 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
             count += 1
         if count == min(len_vv*sample,1000):
             break
-    print('HEYO')
     #print(rslt_torch_v)
     allset = allset_u.union(allset_v)
     selectedComparators = allset
