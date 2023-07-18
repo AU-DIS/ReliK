@@ -740,8 +740,8 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
             allset_u.add(kg_neg_triple_tuple)
         else:
             count += 1
-        #if count == max_limit*2:
-            #break
+        if count == len_uu*sample:
+            break
 
     count = 0
     first = True
@@ -760,9 +760,9 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
             allset_v.add(kg_neg_triple_tuple)
         else:
             count += 1
-        #if count == max_limit*2:
-            #break
-
+        if count == len_vv*sample:
+            break
+    print('HEYO')
     #print(rslt_torch_v)
     allset = allset_u.union(allset_v)
     selectedComparators = allset
