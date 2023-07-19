@@ -724,7 +724,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     limit = int(sample*poss)//1 #1/2 * max( min(100,poss), min (int(sample*poss)//1, int(sample*poss)//1) )#max_limit) )
     first = True
     count = 0
-    while len(allset_u) < min(len_uu*sample,1000):
+    while len(allset_u) < min(len_uu*sample,100):
         #count += 1
         relation = random.choice(lst_emb_r)
         tail = random.choice(lst_emb)
@@ -739,12 +739,12 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
             allset_u.add(kg_neg_triple_tuple)
         else:
             count += 1
-        if count == min(len_uu*sample,1000):
+        if count == min(len_uu*sample,100):
             break
 
     count = 0
     first = True
-    while len(allset_v) < min(len_vv*sample,1000):
+    while len(allset_v) < min(len_vv*sample,100):
         #count += 1
         relation = random.choice(lst_emb_r)
         head = random.choice(lst_emb)
@@ -759,7 +759,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
             allset_v.add(kg_neg_triple_tuple)
         else:
             count += 1
-        if count == min(len_vv*sample,1000):
+        if count == min(len_vv*sample,100):
             break
     #print(rslt_torch_v)
     allset = allset_u.union(allset_v)
