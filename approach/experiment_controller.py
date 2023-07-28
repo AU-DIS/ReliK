@@ -1389,8 +1389,8 @@ if __name__ == "__main__":
     if 'prediction' in task_list:
         print('start with prediction')
         start = timeit.default_timer()
-        #prediction(args.embedding, args.dataset_name, size_subgraphs, emb_train_triples, all_triples_set, nmb_KFold)
-        prediction_head(args.embedding, args.dataset_name, size_subgraphs, emb_train_triples, all_triples_set, nmb_KFold)
+        prediction(args.embedding, args.dataset_name, size_subgraphs, emb_train_triples, all_triples_set, nmb_KFold)
+        #prediction_head(args.embedding, args.dataset_name, size_subgraphs, emb_train_triples, all_triples_set, nmb_KFold)
         end = timeit.default_timer()
         print('end with prediction')
         tstamp_pre = end - start
