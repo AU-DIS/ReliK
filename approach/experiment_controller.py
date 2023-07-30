@@ -222,10 +222,10 @@ def classifierExp(embedding, datasetname, size_subgraph, LP_triples_pos,  LP_tri
     
     score_cla = []
     for i in range(n_split):
-        #LP_test_score = makeTCPart(LP_triples_pos[i],  LP_triples_neg[i], entity2embedding, relation2embedding, subgraphs, emb_train[i], classifier)
-        #score_cla.append(LP_test_score)
-        LP_test_score = naiveTripleCLassification(LP_triples_pos[i],  LP_triples_neg[i], entity_to_id_map, relation_to_id_map, subgraphs, emb_train[i], models[i])
+        LP_test_score = makeTCPart(LP_triples_pos[i],  LP_triples_neg[i], entity2embedding, relation2embedding, subgraphs, emb_train[i], classifier)
         score_cla.append(LP_test_score)
+        #LP_test_score = naiveTripleCLassification(LP_triples_pos[i],  LP_triples_neg[i], entity_to_id_map, relation_to_id_map, subgraphs, emb_train[i], models[i])
+        #score_cla.append(LP_test_score)
 
     fin_score_cla = []
     for i in range(len(score_cla[0])):
@@ -568,13 +568,6 @@ def getSiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], en
         head = entity_to_id_map[u]
         tail = entity_to_id_map[v]
 
-    HeadModelRank: list[dict[tuple[int,int],float]] = []
-    TailModelRank: list[dict[tuple[int,int],float]] = []
-
-    for _ in range(len(models)):
-        HeadModelRank.append(dict())
-        TailModelRank.append(dict())
-
     first_u = True
     first_v = True
     #for entstr in list(subgraphs[0]):
@@ -584,7 +577,7 @@ def getSiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], en
             if kg_neg_triple_tuple not in all_triples_set:
                 if first_u:
                     first_u = False
-                    rslt_torch_u = torch.LongTensor([entity_to_id_map[u],rel,tail])
+                    rslt_torch_u = torch.LongTensor([entity_to_id_map[u],rel,ent])
                     rslt_torch_u = rslt_torch_u.resize_(1,3)
                 else:
                     rslt_torch_u = torch.cat((rslt_torch_u, torch.LongTensor([entity_to_id_map[u],rel,ent]).resize_(1,3)))
@@ -596,8 +589,8 @@ def getSiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], en
                     rslt_torch_v = torch.LongTensor([ent,rel,entity_to_id_map[v]])
                     rslt_torch_v = rslt_torch_v.resize_(1,3)
                 else:
-                    rslt_torch_v = torch.cat((rslt_torch_v, torch.LongTensor([head,rel,entity_to_id_map[v]]).resize_(1,3)))
-
+                    rslt_torch_v = torch.cat((rslt_torch_v, torch.LongTensor([ent,rel,entity_to_id_map[v]]).resize_(1,3)))
+    
     first = True
     for tp in list(existing):
         if first:
@@ -623,6 +616,7 @@ def getSiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], en
         hRankNeg += (he_sc /len(models))
         tRankNeg += (ta_sc /len(models))
     
+    #print(rslt_u_score.size())
     return ( (1/hRankNeg) + (1/tRankNeg) ) /2
 
 def getk_SiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, samples: float, dataset: str) -> float:
@@ -705,23 +699,16 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     #subgraph_list, labels, existing, count, ex_triples  = dh.getkHopneighbors(entity_to_id_map[u],entity_to_id_map[v],M)
     allset_uu = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
     allset_vv = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
-    allset = allset_uu.union(allset_vv)
-    allset = allset.difference(all_triples_set)
-    len_all = len(allset)
-    len_uu = len(allset_uu)
-    len_vv = len(allset_vv)
+    len_uu = len(allset_uu.difference(all_triples_set))
+    len_vv = len(allset_vv.difference(all_triples_set))
 
     allset = set()
     allset_u = set()
     allset_v = set()
-    related_nodes = set()
+    
     lst_emb = list(range(alltriples.num_entities))
     lst_emb_r = list(range(alltriples.num_relations))
-    bigcount = 0
-    poss = alltriples.num_entities*alltriples.num_relations
-    max_limit = 1000000
-    #limit = 1/2 * max( min(100,poss), min (int(sample*poss)//1, max_limit) )
-    limit = int(sample*poss)//1 #1/2 * max( min(100,poss), min (int(sample*poss)//1, int(sample*poss)//1) )#max_limit) )
+
     first = True
     count = 0
     while len(allset_u) < min(len_uu*sample,1000):
@@ -739,9 +726,8 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
             allset_u.add(kg_neg_triple_tuple)
         else:
             count += 1
-        if count == min(len_uu*sample,1000):
-            break
-
+        #if count == len_uu*sample:#min(len_uu*sample,1000):
+        #    break
     count = 0
     first = True
     while len(allset_v) < min(len_vv*sample,1000):
@@ -759,28 +745,7 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
             allset_v.add(kg_neg_triple_tuple)
         else:
             count += 1
-        if count == min(len_vv*sample,1000):
-            break
-    #print(rslt_torch_v)
-    allset = allset_u.union(allset_v)
-    selectedComparators = allset
-    '''print('HO')
-    if dataset == 'Yago2':
-        allset_u = set(itertools.product([u],range(alltriples.num_relations),range(alltriples.num_entities)))
-        allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[v]))
-    else:
-        allset_u = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
-        allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
-    print('YO')
-    allset = allset_v.union(allset_u)
-    allset = allset.difference(all_triples_set)
-    print('BO')'''
-    '''#alllist = list(allset)
-    possible = len(allset)
-    #print(f'We have {count} existing, {possible} possible, worst rank is {possible-count+1}')
-    print(max( min(100,len(allset)), min (int(sample*len(allset))//1, 200) ))
-    selectedComparators = set(random.choices(list(allset),k=max( min(100,len(allset)), min (int(sample*len(allset))//1, 200) ) ) )'''
-    #ex_torch = 
+
     first = True
     for tp in list(existing):
         if first:
@@ -806,74 +771,6 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
         hRankNeg += ((he_sc / len(allset_u))/len(models)) * len_uu
         tRankNeg += ((ta_sc / len(allset_v))/len(models)) * len_vv
                    
-        
-    '''
-    HeadModelRank = []
-    TailModelRank = []
-    ex_triples_new = set()
-    for tp in list(ex_triples):
-        if dataset == 'Yago2':
-            ex_triples_new.add( (tp[0], tp[1], tp[2]) )
-        else:
-            ex_triples_new.add( (entity_to_id_map[tp[0]], relation_to_id_map[tp[1]], entity_to_id_map[tp[2]]) )
-    getScoreList = list(selectedComparators.union(ex_triples_new))
-    #print(getScoreList)
-    u_comp = allset_u.intersection(selectedComparators)
-    v_comp = allset_v.intersection(selectedComparators)
-
-    for i in range(len(models)):
-        HeadModelRank.append(dict())
-        TailModelRank.append(dict())
-
-    if dataset == 'Yago2':
-        head = u
-        tail = v
-    else:
-        head = entity_to_id_map[u]
-        tail = entity_to_id_map[v]
-    for tp in getScoreList:
-        h = tp[0]
-        rel = tp[1]
-        t = tp[2]
-        ten = torch.tensor([[h,rel,t]])
-        if h == head:
-            for i in range(len(models)):
-                score = models[i].score_hrt(ten)
-                score = score.cpu()
-                score = score.detach().numpy()[0][0]
-                HeadModelRank[i][(rel,t)] = score
-        if t == tail:
-            for i in range(len(models)):
-                score = models[i].score_hrt(ten)
-                score = score.cpu()
-                score = score.detach().numpy()[0][0]
-                TailModelRank[i][(h,rel)] = score
-    
-    hRankNeg = 0
-    tRankNeg = 0
-
-    for label in existing:
-        if dataset == 'Yago2':
-            relation = label
-        else:
-            relation = relation_to_id_map[label]
-        
-        for i in range(len(models)):
-            part1 = list(dict(sorted(HeadModelRank[i].items(), key=lambda item: item[1], reverse=True)).keys())
-                
-            part2 = list(dict(sorted(TailModelRank[i].items(), key=lambda item: item[1], reverse=True)).keys())
-
-            if dataset == 'Yago2':
-                pos = findingRankNegHead_Yago(part1,(relation,tail),all_triples_set,head, entity_to_id_map ,relation_to_id_map) / len(models)
-                hRankNeg += (pos / len(u_comp)) * poss
-                neg = findingRankNegTail_Yago(part2,(head,relation),all_triples_set,tail, entity_to_id_map ,relation_to_id_map) / len(models)
-                tRankNeg += (neg / len(v_comp)) * poss
-            else:
-                pos = findingRankNegHead(part1,(relation,tail),all_triples_set,head) / len(models)
-                hRankNeg += (pos / len(u_comp)) * poss
-                neg = findingRankNegTail(part2,(head,relation),all_triples_set,tail) / len(models)
-                tRankNeg += (neg / len(v_comp)) * poss'''
-    
     return ( 1/hRankNeg + 1/tRankNeg )/2, 1/hRankNeg, 1/tRankNeg
 
 def k_binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, sample: float, dataset: str) -> float:
@@ -984,22 +881,16 @@ def lower_bound(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity
 
     allset_uu = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
     allset_vv = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
-    allset = allset_uu.union(allset_vv)
-    allset = allset.difference(all_triples_set)
-    len_all = len(allset)
-    len_uu = len(allset_uu)
-    len_vv = len(allset_vv)
 
-    allset = set()
+    len_uu = len(allset_uu.difference(all_triples_set))
+    len_vv = len(allset_vv.difference(all_triples_set))
+
     allset_u = set()
     allset_v = set()
-    related_nodes = set()
+
     lst_emb = list(range(alltriples.num_entities))
     lst_emb_r = list(range(alltriples.num_relations))
-    bigcount = 0
-    poss = alltriples.num_entities*alltriples.num_relations
-    max_limit = 1000
-    limit = int(sample*poss)//1 #1/2 * max( min(100,poss), min (int(sample*poss)//1, int(sample*poss)//1) )#max_limit) )
+    
     first = True
     count = 0
     while len(allset_u) < len_uu*sample:
@@ -1007,7 +898,7 @@ def lower_bound(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity
         relation = random.choice(lst_emb_r)
         tail = random.choice(lst_emb)
         kg_neg_triple_tuple = (entity_to_id_map[u],relation,tail)
-        if kg_neg_triple_tuple not in all_triples_set:
+        if kg_neg_triple_tuple not in all_triples_set and kg_neg_triple_tuple not in allset_u:
             if first:
                 first = False
                 rslt_torch_u = torch.LongTensor([entity_to_id_map[u],relation,tail])
@@ -1027,7 +918,7 @@ def lower_bound(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity
         relation = random.choice(lst_emb_r)
         head = random.choice(lst_emb)
         kg_neg_triple_tuple = (head,relation,entity_to_id_map[v])
-        if kg_neg_triple_tuple not in all_triples_set:
+        if kg_neg_triple_tuple not in all_triples_set and kg_neg_triple_tuple not in allset_v:
             if first:
                 first = False
                 rslt_torch_v = torch.LongTensor([head,relation,entity_to_id_map[v]])
@@ -1068,7 +959,7 @@ def lower_bound(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity
             ta_sc += torch.sum(rslt_v_score > tr).detach().numpy() + 1
         hRankNeg += (he_sc + len_uu - len(allset_u))/len(models)
         tRankNeg += (ta_sc + len_vv - len(allset_v))/len(models)
-                   
+
     return ( 1/hRankNeg + 1/tRankNeg )/2
 
 def binomial2(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, sample: float, dataset: str) -> float:
@@ -1167,7 +1058,7 @@ def binomial2(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_t
 def densestSubgraph(datasetname, embedding, score_calculation, sample, models):
     path = f"approach/KFold/{datasetname}_{5}_fold/{embedding}_weightedGraph_{score_calculation.__name__}_{sample}_samples.csv"
     isExist = os.path.exists(path)
-    if isExist:
+    if False:
         G = nx.Graph()
         with open(f"approach/KFold/{datasetname}_{5}_fold/{embedding}_weightedGraph_{score_calculation.__name__}_{sample}_samples.csv", "r") as f:
             plots = csv.reader(f, delimiter=',')
@@ -1216,9 +1107,10 @@ def densestSubgraph(datasetname, embedding, score_calculation, sample, models):
             w = score_calculation(u, v, M, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample, datasetname)
             if G.has_edge(u,v):
                 G[u][v]['weight'] += w
+                #print(w)
             else:
                 G.add_edge(u, v, weight=w)
-                print(w)
+                #print(w)
             count += 1
             now = timeit.default_timer()
             #print(now-start)
@@ -1235,7 +1127,7 @@ def densestSubgraph(datasetname, embedding, score_calculation, sample, models):
             wr = csv.writer(f)
             wr.writerows(weighted_graph)
 
-    flowless_R = dsd.flowless(G, 5, weight='weight')
+    '''flowless_R = dsd.flowless(G, 5, weight='weight')
     greedy_R = dsd.greedy_charikar(G, weight='weight')
 
     flow_den = []
@@ -1249,7 +1141,7 @@ def densestSubgraph(datasetname, embedding, score_calculation, sample, models):
         os.makedirs(path)
 
     dh.storeDenSubGraphs(path, flow_den)
-    dh.storeDenSubGraphs(path, greedy_den)
+    dh.storeDenSubGraphs(path, greedy_den)'''
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
