@@ -1,0 +1,10 @@
+Python 3.9.13
+
+more_itertools==9.0.0
+networkx==2.8.4
+numpy==1.22.4
+pandas==1.5.2
+pykeen==1.5.0
+scikit_learn==1.2.0
+scipy==1.8.1
+torch==1.13.0

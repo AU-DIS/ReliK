@@ -2,6 +2,15 @@ frameworks
 .DS_Store
 data
 output
+scoreData
+subgraphs
+test.py
+trainedEmbeddings
+settings.py
+KFold
+approach_testing
+runall.sh
+AMIE
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
