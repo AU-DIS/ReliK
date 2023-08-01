@@ -1,1 +1,0 @@
-python generate_openke_data.py -i ../data/kg/yago2core.10kseedsSample.compressed.notypes.tsv -o ../data/openke/yago2sample
