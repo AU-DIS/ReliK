@@ -8,6 +8,8 @@ from pykeen.models import RotatE
 from pykeen.models import PairRE
 from pykeen.models import SimplE
 from pykeen.models import ConvE
+from pykeen.models import ComplEx
+from pykeen.models import CompGCN
 from pykeen.pipeline import pipeline
 import timeit
 from typing import cast
@@ -74,6 +76,10 @@ def trainEmbeddingMore(training_set, test_set, validation_set, random_seed=None,
         mod = SimplE
     elif embedd == 'ConvE':
         mod = ConvE
+    elif embedd == 'ComplEx':
+        mod = ComplEx
+    elif embedd == 'CompGCN':
+        mod = CompGCN
     
     result = pipeline(training=training_set,testing=test_set,validation=validation_set,model=mod,model_kwargs=dict(embedding_dim=512),
         training_loop='sLCWA',training_kwargs=dict(num_epochs=100, batch_size=128),stopper='early',stopper_kwargs=dict(patience=10,relative_delta=0.0001,frequency=50),

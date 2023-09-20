@@ -478,35 +478,6 @@ def Yago2():
     del LP_triples
     gc.collect()
     torch.cuda.empty_cache()
-    #print(torch.cuda.memory_summary(device=None, abbreviated=False))
-    '''#import pykeen.datasets as dat
-    #dataset = dat.Nations()
-    trans = TransE(triples_factory=h.training, embedding_dim=50)
-    #trans = ERModel(triples_factory=dataset.training, interaction='TransE', interaction_kwargs=dict(embedding_dim=50))
-
-    model = LCWALitModule(
-        dataset=h,
-        model=trans
-    )
-    #print(torch.cuda.memory_summary(device=None, abbreviated=False))
-    #stopper = EarlyStopping('val_loss',min_delta=1/128, patience=10)
-    trainer = pytorch_lightning.Trainer(
-        accelerator="gpu",  # automatically choose accelerator
-        logger=False,  # defaults to TensorBoard; explicitly disabled here
-        precision=16,  # mixed precision training
-        max_epochs=50,
-        min_epochs=25,
-        devices= [1,2,3,4,6]
-        #callbacks=[stopper]
-    )
-    torch.cuda.empty_cache()
-    #print(torch.cuda.memory_summary(device=None, abbreviated=False))
-    trainer.fit(model=model)
-
-    trans.save_state(f"approach/trainedEmbeddings/Yago2.te")'''
-    
-
-
 
     result = pipeline(training=emb_train_triples,testing=emb_test_triples,model=TransE,random_seed=4,training_loop='sLCWA', model_kwargs=dict(embedding_dim=50),training_kwargs=dict(num_epochs=50), evaluation_fallback= True, device='cuda:5')   
 
@@ -960,99 +931,6 @@ def lower_bound(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity
         hRankNeg += (he_sc + len_uu - len(allset_u))/len(models)
         tRankNeg += (ta_sc + len_vv - len(allset_v))/len(models)
 
-    return ( 1/hRankNeg + 1/tRankNeg )/2
-
-def binomial2(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, sample: float, dataset: str) -> float:
-    
-    subgraph_list, labels, existing, count, ex_triples  = dh.getkHopneighbors(u,v,M)
-    
-    #allset_u = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
-    #allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
-    if dataset == 'Yago2':
-        allset_u = set(itertools.product([u],range(alltriples.num_relations),range(alltriples.num_entities)))
-        allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[v]))
-    else:
-        allset_u = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
-        allset_v = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
-    allset = allset_v.union(allset_u)
-    allset = allset.difference(all_triples_set)
-    
-    #alllist = list(allset)
-    possible = len(allset)
-    #print(f'We have {count} existing, {possible} possible, worst rank is {possible-count+1}')
-    selectedComparators = set(random.choices(list(allset),k=max( min(100,len(allset)), min (int(sample*len(allset))//1, 2000) ) ) )
-
-    HeadModelRank = []
-    TailModelRank = []
-
-    ex_triples_new = set()
-    for tp in list(ex_triples):
-        if dataset == 'Yago2':
-            ex_triples_new.add( (tp[0], tp[1], tp[2]) )
-        else:
-            ex_triples_new.add( (entity_to_id_map[tp[0]], relation_to_id_map[tp[1]], entity_to_id_map[tp[2]]) )
-    
-    getScoreList = list(selectedComparators.union(ex_triples_new))
-
-    u_comp = allset_u.intersection(selectedComparators)
-    v_comp = allset_v.intersection(selectedComparators)
-
-    for i in range(len(models)):
-        HeadModelRank.append(dict())
-        TailModelRank.append(dict())
-
-    if dataset == 'Yago2':
-        head = u
-        tail = v
-    else:
-        head = entity_to_id_map[u]
-        tail = entity_to_id_map[v]
-    for tp in getScoreList:
-        h = tp[0]
-        rel = tp[1]
-        t = tp[2]
-        ten = torch.tensor([[h,rel,t]])
-        if h == head:
-            for i in range(len(models)):
-                score = models[i].score_hrt(ten)
-                score = score.cpu()
-                score = score.detach().numpy()[0][0]
-                HeadModelRank[i][(rel,t)] = score
-        if t == tail:
-            for i in range(len(models)):
-                score = models[i].score_hrt(ten)
-                score = score.cpu()
-                score = score.detach().numpy()[0][0]
-                TailModelRank[i][(h,rel)] = score
-    
-    hRankNeg = 0
-    tRankNeg = 0
-
-    for label in existing:
-        if dataset == 'Yago2':
-            relation = label
-        else:
-            relation = relation_to_id_map[label]
-        
-        for i in range(len(models)):
-            part1 = list(dict(sorted(HeadModelRank[i].items(), key=lambda item: item[1], reverse=True)).keys())
-                
-            part2 = list(dict(sorted(TailModelRank[i].items(), key=lambda item: item[1], reverse=True)).keys())
-
-            if dataset == 'Yago2':
-                pos = findingRankNegHead_Yago(part1,(relation,tail),all_triples_set,head, entity_to_id_map ,relation_to_id_map) / len(models)
-                hRankNeg += (pos / len(u_comp)) * len(allset_u)
-                neg = findingRankNegTail_Yago(part2,(head,relation),all_triples_set,tail, entity_to_id_map ,relation_to_id_map) / len(models)
-                tRankNeg += (neg / len(v_comp)) * len(allset_v)
-            else:
-                pos = findingRankNegHead(part1,(relation,tail),all_triples_set,head) / len(models)
-                hRankNeg += (pos / len(u_comp)) * len(allset_u)
-                neg = findingRankNegTail(part2,(head,relation),all_triples_set,tail) / len(models)
-                tRankNeg += (neg / len(v_comp)) * len(allset_v)
-
-    hRankNeg = hRankNeg/len(existing)
-    tRankNeg = tRankNeg/len(existing)
-    
     return ( 1/hRankNeg + 1/tRankNeg )/2
 
 def densestSubgraph(datasetname, embedding, score_calculation, sample, models):
