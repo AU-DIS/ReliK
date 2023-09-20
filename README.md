@@ -39,5 +39,3 @@ The resulting data will be stored in a `scoreData` folder.<br>
 ## Further information
 
 If there are any questions about this, feel free to contact: `maximilian.egger[at]cs.au.dk`
-
-Other folders beside `approach` are in need of cleanup and not necessary for running the code.
