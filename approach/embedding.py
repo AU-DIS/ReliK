@@ -124,6 +124,16 @@ def trainEmbedding(training_set, test_set, random_seed=None, saveModel = False, 
             result = pipeline(training=training_set,testing=test_set,model=ConvE,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
         else:
             result = pipeline(training=training_set,testing=test_set,model=ConvE,random_seed=random_seed,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
+    elif embedd == 'ComplEx':
+        if random_seed == None:
+            result = pipeline(training=training_set,testing=test_set,model=ComplEx,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
+        else:
+            result = pipeline(training=training_set,testing=test_set,model=ComplEx,random_seed=random_seed,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
+    elif embedd == 'CompGCN':
+        if random_seed == None:
+            result = pipeline(training=training_set,testing=test_set,model=CompGCN,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
+        else:
+            result = pipeline(training=training_set,testing=test_set,model=CompGCN,random_seed=random_seed,training_loop='sLCWA', model_kwargs=dict(embedding_dim=dimension),training_kwargs=dict(num_epochs=epoch_nmb))
 
     if saveModel:
         result.save_to_directory(f"approach/trainedEmbeddings/{savename}")
