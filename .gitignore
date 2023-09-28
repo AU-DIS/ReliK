@@ -11,6 +11,7 @@ KFold
 approach_testing
 runall.sh
 AMIE
+FB15k-237-betae
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

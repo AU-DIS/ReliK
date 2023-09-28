@@ -10,7 +10,7 @@ from collections import defaultdict
 from pykeen.triples import TriplesFactory
 
 import embedding as emb
-import settings as sett
+#import settings as sett
 import datahandler as dh
 import classifier as cla
 
