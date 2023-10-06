@@ -222,10 +222,10 @@ def classifierExp(embedding, datasetname, size_subgraph, LP_triples_pos,  LP_tri
     
     score_cla = []
     for i in range(n_split):
-        LP_test_score = makeTCPart(LP_triples_pos[i],  LP_triples_neg[i], entity2embedding, relation2embedding, subgraphs, emb_train[i], classifier)
-        score_cla.append(LP_test_score)
-        #LP_test_score = naiveTripleCLassification(LP_triples_pos[i],  LP_triples_neg[i], entity_to_id_map, relation_to_id_map, subgraphs, emb_train[i], models[i])
+        #LP_test_score = makeTCPart(LP_triples_pos[i],  LP_triples_neg[i], entity2embedding, relation2embedding, subgraphs, emb_train[i], classifier)
         #score_cla.append(LP_test_score)
+        LP_test_score = naiveTripleCLassification(LP_triples_pos[i],  LP_triples_neg[i], entity_to_id_map, relation_to_id_map, subgraphs, emb_train[i], models[i])
+        score_cla.append(LP_test_score)
 
     fin_score_cla = []
     for i in range(len(score_cla[0])):
