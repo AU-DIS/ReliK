@@ -720,8 +720,10 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
     else:
         allset_u = set()
         allset_v = set()
+        len_uu = alltriples.num_entities*alltriples.num_relations
+        len_vv = alltriples.num_entities*alltriples.num_relations
         first = True
-        while len(allset_u) < min(alltriples.num_entities*alltriples.num_relations*sample,1000):
+        while len(allset_u) < min(len_uu*sample,1000):
             kg_neg_triple_tuple = tuple(map(random.choice, map(list, [range(alltriples.num_relations),range(alltriples.num_entities)] )))
             kg_neg_triple_tuple = (entity_to_id_map[u], kg_neg_triple_tuple[0], kg_neg_triple_tuple[1])
             if kg_neg_triple_tuple not in all_triples_set and kg_neg_triple_tuple not in allset_u:
@@ -734,17 +736,18 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
                 allset_u.add(kg_neg_triple_tuple)
 
         first = True
-        while len(allset_v) < min(alltriples.num_entities*alltriples.num_relations*sample,1000):
+        while len(allset_v) < min(len_vv*sample,1000):
             kg_neg_triple_tuple = tuple(map(random.choice, map(list, [range(alltriples.num_relations),range(alltriples.num_entities)] )))
             kg_neg_triple_tuple = (kg_neg_triple_tuple[1], kg_neg_triple_tuple[0], entity_to_id_map[v])
             if kg_neg_triple_tuple not in all_triples_set and kg_neg_triple_tuple not in allset_u:
                 if first:
                     first = False
-                    rslt_torch_u = torch.LongTensor([kg_neg_triple_tuple[0],kg_neg_triple_tuple[1],kg_neg_triple_tuple[2]])
-                    rslt_torch_u = rslt_torch_u.resize_(1,3)
+                    rslt_torch_v = torch.LongTensor([kg_neg_triple_tuple[0],kg_neg_triple_tuple[1],kg_neg_triple_tuple[2]])
+                    rslt_torch_v = rslt_torch_u.resize_(1,3)
                 else:
-                    rslt_torch_u = torch.cat((rslt_torch_u, torch.LongTensor([kg_neg_triple_tuple[0],kg_neg_triple_tuple[1],kg_neg_triple_tuple[2]]).resize_(1,3)))
-                allset_u.add(kg_neg_triple_tuple)
+                    rslt_torch_v = torch.cat((rslt_torch_u, torch.LongTensor([kg_neg_triple_tuple[0],kg_neg_triple_tuple[1],kg_neg_triple_tuple[2]]).resize_(1,3)))
+                allset_v.add(kg_neg_triple_tuple)
+    print('HELLO2')
 
     first = True
     for tp in list(existing):
