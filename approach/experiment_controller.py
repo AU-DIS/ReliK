@@ -664,58 +664,87 @@ def getk_SiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], 
     return ( (1/hRankNeg) + (1/tRankNeg) ) /2
 
 def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, sample: float, dataset: str) -> float:
-    
+    #list(map(random.choice, map(list, list_of_sets)))
     subgraph_list, labels, existing, count, ex_triples  = dh.getkHopneighbors(u,v,M)
     #print(entity_to_id_map)
     #subgraph_list, labels, existing, count, ex_triples  = dh.getkHopneighbors(entity_to_id_map[u],entity_to_id_map[v],M)
-    allset_uu = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
-    allset_vv = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
-    len_uu = len(allset_uu.difference(all_triples_set))
-    len_vv = len(allset_vv.difference(all_triples_set))
+    if sample > 0.4:
+        allset_uu = set(itertools.product([entity_to_id_map[u]],range(alltriples.num_relations),range(alltriples.num_entities)))
+        allset_vv = set(itertools.product(range(alltriples.num_entities),range(alltriples.num_relations),[entity_to_id_map[v]]))
+        len_uu = len(allset_uu.difference(all_triples_set))
+        len_vv = len(allset_vv.difference(all_triples_set))
 
-    allset = set()
-    allset_u = set()
-    allset_v = set()
-    
-    lst_emb = list(range(alltriples.num_entities))
-    lst_emb_r = list(range(alltriples.num_relations))
+        allset = set()
+        allset_u = set()
+        allset_v = set()
+        
+        lst_emb = list(range(alltriples.num_entities))
+        lst_emb_r = list(range(alltriples.num_relations))
 
-    first = True
-    count = 0
-    while len(allset_u) < min(len_uu*sample,1000):
-        #count += 1
-        relation = random.choice(lst_emb_r)
-        tail = random.choice(lst_emb)
-        kg_neg_triple_tuple = (entity_to_id_map[u],relation,tail)
-        if kg_neg_triple_tuple not in all_triples_set and kg_neg_triple_tuple not in allset_u:
-            if first:
-                first = False
-                rslt_torch_u = torch.LongTensor([entity_to_id_map[u],relation,tail])
-                rslt_torch_u = rslt_torch_u.resize_(1,3)
+        first = True
+        count = 0
+        while len(allset_u) < min(len_uu*sample,1000):
+            #count += 1
+            relation = random.choice(lst_emb_r)
+            tail = random.choice(lst_emb)
+            kg_neg_triple_tuple = (entity_to_id_map[u],relation,tail)
+            if kg_neg_triple_tuple not in all_triples_set and kg_neg_triple_tuple not in allset_u:
+                if first:
+                    first = False
+                    rslt_torch_u = torch.LongTensor([entity_to_id_map[u],relation,tail])
+                    rslt_torch_u = rslt_torch_u.resize_(1,3)
+                else:
+                    rslt_torch_u = torch.cat((rslt_torch_u, torch.LongTensor([entity_to_id_map[u],relation,tail]).resize_(1,3)))
+                allset_u.add(kg_neg_triple_tuple)
             else:
-                rslt_torch_u = torch.cat((rslt_torch_u, torch.LongTensor([entity_to_id_map[u],relation,tail]).resize_(1,3)))
-            allset_u.add(kg_neg_triple_tuple)
-        else:
-            count += 1
-        #if count == len_uu*sample:#min(len_uu*sample,1000):
-        #    break
-    count = 0
-    first = True
-    while len(allset_v) < min(len_vv*sample,1000):
-        #count += 1
-        relation = random.choice(lst_emb_r)
-        head = random.choice(lst_emb)
-        kg_neg_triple_tuple = (head,relation,entity_to_id_map[v])
-        if kg_neg_triple_tuple not in all_triples_set and kg_neg_triple_tuple not in allset_v:
-            if first:
-                first = False
-                rslt_torch_v = torch.LongTensor([head,relation,entity_to_id_map[v]])
-                rslt_torch_v = rslt_torch_v.resize_(1,3)
+                count += 1
+            #if count == len_uu*sample:#min(len_uu*sample,1000):
+            #    break
+        count = 0
+        first = True
+        while len(allset_v) < min(len_vv*sample,1000):
+            #count += 1
+            relation = random.choice(lst_emb_r)
+            head = random.choice(lst_emb)
+            kg_neg_triple_tuple = (head,relation,entity_to_id_map[v])
+            if kg_neg_triple_tuple not in all_triples_set and kg_neg_triple_tuple not in allset_v:
+                if first:
+                    first = False
+                    rslt_torch_v = torch.LongTensor([head,relation,entity_to_id_map[v]])
+                    rslt_torch_v = rslt_torch_v.resize_(1,3)
+                else:
+                    rslt_torch_v = torch.cat((rslt_torch_v, torch.LongTensor([head,relation,entity_to_id_map[v]]).resize_(1,3)))
+                allset_v.add(kg_neg_triple_tuple)
             else:
-                rslt_torch_v = torch.cat((rslt_torch_v, torch.LongTensor([head,relation,entity_to_id_map[v]]).resize_(1,3)))
-            allset_v.add(kg_neg_triple_tuple)
-        else:
-            count += 1
+                count += 1
+    else:
+        allset_u = set()
+        allset_v = set()
+        first = True
+        while len(allset_u) < min(alltriples.num_entities*alltriples.num_relations*sample,1000):
+            kg_neg_triple_tuple = tuple(map(random.choice, map(list, [range(alltriples.num_relations),range(alltriples.num_entities)] )))
+            kg_neg_triple_tuple = (entity_to_id_map[u], kg_neg_triple_tuple[0], kg_neg_triple_tuple[1])
+            if kg_neg_triple_tuple not in all_triples_set and kg_neg_triple_tuple not in allset_u:
+                if first:
+                    first = False
+                    rslt_torch_u = torch.LongTensor([kg_neg_triple_tuple[0],kg_neg_triple_tuple[1],kg_neg_triple_tuple[2]])
+                    rslt_torch_u = rslt_torch_u.resize_(1,3)
+                else:
+                    rslt_torch_u = torch.cat((rslt_torch_u, torch.LongTensor([kg_neg_triple_tuple[0],kg_neg_triple_tuple[1],kg_neg_triple_tuple[2]]).resize_(1,3)))
+                allset_u.add(kg_neg_triple_tuple)
+
+        first = True
+        while len(allset_v) < min(alltriples.num_entities*alltriples.num_relations*sample,1000):
+            kg_neg_triple_tuple = tuple(map(random.choice, map(list, [range(alltriples.num_relations),range(alltriples.num_entities)] )))
+            kg_neg_triple_tuple = (kg_neg_triple_tuple[1], kg_neg_triple_tuple[0], entity_to_id_map[v])
+            if kg_neg_triple_tuple not in all_triples_set and kg_neg_triple_tuple not in allset_u:
+                if first:
+                    first = False
+                    rslt_torch_u = torch.LongTensor([kg_neg_triple_tuple[0],kg_neg_triple_tuple[1],kg_neg_triple_tuple[2]])
+                    rslt_torch_u = rslt_torch_u.resize_(1,3)
+                else:
+                    rslt_torch_u = torch.cat((rslt_torch_u, torch.LongTensor([kg_neg_triple_tuple[0],kg_neg_triple_tuple[1],kg_neg_triple_tuple[2]]).resize_(1,3)))
+                allset_u.add(kg_neg_triple_tuple)
 
     first = True
     for tp in list(existing):
