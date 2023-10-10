@@ -747,7 +747,6 @@ def binomial(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to
                 else:
                     rslt_torch_v = torch.cat((rslt_torch_u, torch.LongTensor([kg_neg_triple_tuple[0],kg_neg_triple_tuple[1],kg_neg_triple_tuple[2]]).resize_(1,3)))
                 allset_v.add(kg_neg_triple_tuple)
-    print('HELLO2')
 
     first = True
     for tp in list(existing):
