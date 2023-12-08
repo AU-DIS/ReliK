@@ -103,7 +103,7 @@ def naiveTripleCLassification(LP_triples_pos, LP_triples_neg, entity_to_id_map, 
     return LP_test_score
 
 
-def grabAllKFold(datasetname: str, n_split: int):
+def grabAllKFold(datasetname: str, n_split: int, embeddingname: str = 'TransE'):
     all_triples, all_triples_set, entity_to_id_map, relation_to_id_map, test_triples, validation_triples = emb.getDataFromPykeen(datasetname=datasetname)
     full_dataset = torch.cat((all_triples, test_triples.mapped_triples, validation_triples.mapped_triples))
 
@@ -121,7 +121,7 @@ def grabAllKFold(datasetname: str, n_split: int):
         emb_triples_id, LP_triples_id = dh.loadKFoldSplit(i, datasetname,n_split=nmb_KFold)
         emb_triples = full_dataset[emb_triples_id]
         LP_triples = full_dataset[LP_triples_id]
-        if False:
+        if embeddingname != 'CompGCN':
             emb_train_triples.append(TriplesFactory(emb_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map))
             emb_test_triples.append(TriplesFactory(LP_triples,entity_to_id=entity_to_id_map,relation_to_id=relation_to_id_map))
         else:
@@ -1230,7 +1230,7 @@ if __name__ == "__main__":
 
     if args.dataset_name != 'Yago2':
         # collecting all information except the model from the KFold
-        all_triples, all_triples_set, entity_to_id_map, relation_to_id_map, emb_train_triples, emb_test_triples, LP_triples_pos, full_graph = grabAllKFold(args.dataset_name, nmb_KFold)
+        all_triples, all_triples_set, entity_to_id_map, relation_to_id_map, emb_train_triples, emb_test_triples, LP_triples_pos, full_graph = grabAllKFold(args.dataset_name, nmb_KFold, args.embedding)
 
         # checking if we have negative triples for
         LP_triples_neg = KFoldNegGen(args.dataset_name, nmb_KFold, all_triples_set, LP_triples_pos, emb_train_triples)
@@ -1274,7 +1274,8 @@ if __name__ == "__main__":
         tstamp_pre = end - start
     if 'triple' in task_list:
         print('start with triple')
-        entity2embedding, relation2embedding = emb.createEmbeddingMaps_DistMult(models[0], emb_train_triples[0])
+        #entity2embedding, relation2embedding = emb.createEmbeddingMaps_DistMult(models[0], emb_train_triples[0])
+        entity2embedding, relation2embedding = None, None
         start = timeit.default_timer()
         classifierExp(args.embedding, args.dataset_name, size_subgraphs, LP_triples_pos,  LP_triples_neg, entity2embedding, relation2embedding, emb_train_triples, nmb_KFold, models, entity_to_id_map, relation_to_id_map, classifier)
         end = timeit.default_timer()
