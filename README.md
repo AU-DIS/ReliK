@@ -1,11 +1,11 @@
 # ReliK
 
 ReliK is a measure to capture reliability in Knowledge Graph Embeddings (KGE) in a local neighborhood.<br>
-A Knowledge grpah is considered a list of triples in the structure (head, relation, tail)
+A Knowledge graph is considered a list of triples in the structure (head, relation, tail)
 
 > e.g. ("Leonardo da Vinci", "painted", "Mona Lisa")
 
-## Running ReliK
+## Running the implementation of ReliK
 
 The code is in python and located in the "approach" folder. The requirements are noted in `requirements.txt` and can be installed with that help.<br>
 

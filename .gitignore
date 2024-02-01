@@ -5,6 +5,8 @@ output
 scoreData
 subgraphs
 test.py
+my_stat.py
+kfold_evaluation.py
 trainedEmbeddings
 settings.py
 KFold
