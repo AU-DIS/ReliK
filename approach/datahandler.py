@@ -8,7 +8,6 @@ import numpy as np
 import csv
 import torch
 import os
-import dsdm as dsd
 import embedding as emb
 from pykeen.triples import TriplesFactory
 from sklearn.model_selection import KFold
