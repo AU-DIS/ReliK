@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/448832644.svg)](https://zenodo.org/doi/10.5281/zenodo.10656796)
+
 # ReliK
 
 ReliK is a measure to capture reliability in Knowledge Graph Embeddings (KGE) in a local neighborhood.<br>
