@@ -169,7 +169,7 @@ def KFoldNegGen(datasetname: str, n_split: int, all_triples_set, LP_triples_pos,
             LP_triples_neg.append(neg_triples)
     return LP_triples_neg
 
-def DoGlobalSiblingScore(embedding, datasetname, n_split, size_subgraph, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample, heur):
+def DoGlobalReliKScore(embedding, datasetname, n_split, size_subgraph, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, sample, heur):
     '''
     compute the ReliK score on all subgraphs according to chosen heuristic
     '''
@@ -187,9 +187,9 @@ def DoGlobalSiblingScore(embedding, datasetname, n_split, size_subgraph, models,
     for t in df.values:
         M.add_edge(t[0], t[2], label = t[1])
 
-    model_siblings_score = []
-    model_siblings_score_h = []
-    model_siblings_score_t = []
+    model_ReliK_score = []
+    model_ReliK_score_h = []
+    model_ReliK_score_t = []
     tracker = 0
     for subgraph in subgraphs:
         count = 0
@@ -207,19 +207,19 @@ def DoGlobalSiblingScore(embedding, datasetname, n_split, size_subgraph, models,
         sib_sum = sib_sum/count
         sib_sum_h = sib_sum_h/count
         sib_sum_t = sib_sum_t/count
-        model_siblings_score.append(sib_sum)
-        model_siblings_score_h.append(sib_sum_h)
-        model_siblings_score_t.append(sib_sum_t)
+        model_ReliK_score.append(sib_sum)
+        model_ReliK_score_h.append(sib_sum_h)
+        model_ReliK_score_t.append(sib_sum_t)
         tracker += 1
         if tracker % 10 == 0: print(f'have done {tracker} of {len(subgraphs)} in {embedding}')
 
-    path = f"approach/scoreData/{datasetname}_{n_split}/{embedding}/siblings_score_subgraphs_{size_subgraph}.csv"
+    path = f"approach/scoreData/{datasetname}_{n_split}/{embedding}/ReliK_score_subgraphs_{size_subgraph}.csv"
     c = open(f'{path}', "w")
     writer = csv.writer(c)
-    data = ['subgraph','siblings','sib h','sib t']
+    data = ['subgraph','ReliK','sib h','sib t']
     writer.writerow(data)
-    for j in range(len(model_siblings_score)):
-        data = [j, model_siblings_score[j], model_siblings_score_h[j], model_siblings_score_t[j]]
+    for j in range(len(model_ReliK_score)):
+        data = [j, model_ReliK_score[j], model_ReliK_score_h[j], model_ReliK_score_t[j]]
         writer.writerow(data)
     c.close()
 
@@ -590,7 +590,7 @@ def findingRankNegTail_Yago(orderedList, key, all_triples_set, fix, map, map_r):
         counter += 1
     return None
 
-def getSiblingScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, samples: float, dataset: str) -> float:
+def getReliKScore(u: str, v: str, M: nx.MultiDiGraph, models: list[object], entity_to_id_map: object, relation_to_id_map: object, all_triples_set: set[tuple[int,int,int]], alltriples: TriplesFactory, samples: float, dataset: str) -> float:
     '''
     get exact ReliK score
     '''
@@ -969,7 +969,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-e','--embedding', dest='embedding', type=str, help='choose which embedding type to use')
     parser.add_argument('-d','--datasetname', dest='dataset_name', type=str, help='choose which dataset to use')
-    parser.add_argument('-t','--tasks', dest='tasks', type=str, help='if set, only run respective tasks, split with \",\" could be from [siblings, prediction, triple, densest]')
+    parser.add_argument('-t','--tasks', dest='tasks', type=str, help='if set, only run respective tasks, split with \",\" could be from [relik, prediction, triple, densest]')
     parser.add_argument('-s','--subgraphs', dest='size_subgraphs', type=int, help='choose which size of subgraphs are getting tested')
     parser.add_argument('-n','--n_subgraphs', dest='n_subgraphs', type=int, help='choose which n of subgraphs are getting tested')
     parser.add_argument('-st','--setup', dest='setup',action='store_true' ,help='if set, just setup and train embedding, subgraphs, neg-triples')
@@ -1007,7 +1007,7 @@ if __name__ == "__main__":
     elif args.setup:
         task_list: set[str] = set()
     else:
-        task_list: set[str] = set(('siblings', 'prediction', 'triple', 'densest'))
+        task_list: set[str] = set(('relik', 'prediction', 'triple', 'densest'))
 
     if args.size_subgraphs:
         size_subgraphs = args.size_subgraphs
@@ -1018,15 +1018,15 @@ if __name__ == "__main__":
         n_subgraphs = args.n_subgraphs
     else:
         n_subgraphs = 500
-    if 'siblings' in task_list:
+    if 'ReliK' in task_list:
         ratio = float(args.ratio)
     if args.heuristic:
         heuristic = args.heuristic
         if heuristic == 'binomial':
             ratio = float(args.ratio)
             heuristic = binomial
-        if heuristic == 'sibling':
-            heuristic = getSiblingScore
+        if heuristic == 'relik':
+            heuristic = getReliKScore
             ratio = 0.1
         if heuristic == 'lower':
             heuristic = lower_bound
@@ -1092,12 +1092,12 @@ if __name__ == "__main__":
     tstamp_tpc = -1
     tstamp_den = -1
 
-    if 'siblings' in task_list:
-        print('start with siblings')
+    if 'ReliK' in task_list:
+        print('start with ReliK')
         start = timeit.default_timer()
-        DoGlobalSiblingScore(args.embedding, args.dataset_name, nmb_KFold, size_subgraphs, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, ratio, heuristic)
+        DoGlobalReliKScore(args.embedding, args.dataset_name, nmb_KFold, size_subgraphs, models, entity_to_id_map, relation_to_id_map, all_triples_set, full_graph, ratio, heuristic)
         end = timeit.default_timer()
-        print('end with siblings')
+        print('end with ReliK')
         tstamp_sib = end - start
     if 'prediction' in task_list:
         print('start with prediction')
@@ -1127,7 +1127,7 @@ if __name__ == "__main__":
         c = open(f'{path}', "a+")
         writer = csv.writer(c)
         start = timeit.default_timer()
-        densestSubgraph(args.dataset_name, args.embedding, getSiblingScore, ratio, models)
+        densestSubgraph(args.dataset_name, args.embedding, getReliKScore, ratio, models)
         end = timeit.default_timer()
         data = ['accurate', ratio, end-start]
         writer.writerow(data)

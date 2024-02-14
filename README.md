@@ -16,7 +16,7 @@ To run the code:
 The task_list schould be seperated by ``,``.<br>
 
 To run the ReliK calculations for the ``CodexSmall`` dataset with the `TransE` embedding would look like:
-> python experiment_controller.py -d CodexSmall -e TransE -t siblings -s 60 -n 100 -heur binomial -r 0.1
+> python experiment_controller.py -d CodexSmall -e TransE -t relik -s 60 -n 100 -heur binomial -r 0.1
 
 If there is no pretrained embedding that fits the dataset and type, it will be trained before continuing with the experiment. You can also pretrain the embedding with:
 
